@@ -1,0 +1,584 @@
+openapi: 3.1.0
+info:
+  title: Gully Cricket Live
+  version: "1.0.0"
+  description: |
+    Scoring API. Derived state is a pure function of the non-voided ball log.
+    The engine rules, fixtures, and error precedence live in `RULES.md`.
+    `schemas/match-state.schema.json` and `schemas/ball-event.schema.json` are
+    the normative payloads for `MatchState` and `BallEvent`.
+
+    Websocket `/ws/matches/{slug}` is public and read-only. There is no login
+    and no client-to-server message. On connect the server sends
+    `{ "type": "snapshot", "state": MatchState }`. After each applied ball it
+    sends `{ "type": "ball", "event": BallEvent, "state": MatchState }`.
+    After undo it sends
+    `{ "type": "undo", "voided_client_uuid": "<uuid>", "state": MatchState }`.
+    Duplicate acknowledgements do not emit a frame. A batch emits one `ball`
+    frame per newly applied event, in `seq` order.
+x-websocket:
+  path: /ws/matches/{slug}
+  auth: none
+  followers: read-only
+  client_messages: none
+  server_messages:
+    - type: snapshot
+      when: connect
+      body:
+        type: object
+        additionalProperties: false
+        required: [type, state]
+        properties:
+          type:
+            const: snapshot
+          state:
+            $ref: ./schemas/match-state.schema.json
+    - type: ball
+      when: a new ball is applied
+      body:
+        type: object
+        additionalProperties: false
+        required: [type, event, state]
+        properties:
+          type:
+            const: ball
+          event:
+            $ref: ./schemas/ball-event.schema.json
+          state:
+            $ref: ./schemas/match-state.schema.json
+    - type: undo
+      when: a ball is voided
+      body:
+        type: object
+        additionalProperties: false
+        required: [type, voided_client_uuid, state]
+        properties:
+          type:
+            const: undo
+          voided_client_uuid:
+            type: string
+            format: uuid
+          state:
+            $ref: ./schemas/match-state.schema.json
+servers:
+  - url: /
+tags:
+  - name: match
+  - name: public
+  - name: meta
+paths:
+  /healthz:
+    get:
+      tags: [meta]
+      operationId: healthz
+      security: []
+      responses:
+        "200":
+          description: Process is up.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /matches:
+    post:
+      tags: [match]
+      operationId: createMatch
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMatchRequest"
+      responses:
+        "201":
+          description: Match created. `scorer_token` is returned only here.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateMatchResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "409":
+          description: A client team id or player id is already stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                idConflict:
+                  value:
+                    error: id_conflict
+  /matches/{id}:
+    get:
+      tags: [match]
+      operationId: getMatch
+      security:
+        - scorerToken: []
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: Scorer view. The body is the derived match state.
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/match-state.schema.json
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /matches/{id}/innings:
+    post:
+      tags: [match]
+      operationId: startInnings
+      security:
+        - scorerToken: []
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InningsStart"
+      responses:
+        "200":
+          description: Innings started. Body is the derived state.
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/match-state.schema.json
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: Lineup or phase rejected. `innings_lineup` or `innings_not_ready`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /matches/{id}/events:
+    post:
+      tags: [match]
+      operationId: postEvents
+      security:
+        - scorerToken: []
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      description: |
+        Append a batch of balls. The batch is atomic: if any new ball fails,
+        no ball from this request is stored and the response is an error.
+        An already-stored `client_uuid` whose delivery fields match is
+        acknowledged as `duplicate` with its original `seq` and is not a
+        failure. Delivery fields are `seq`, `innings_number`, `striker_id`,
+        `non_striker_id`, `bowler_id`, `runs_bat`, `extra_type`, `extra_runs`,
+        `wicket_type`, `dismissed_id`, and `fielder_id`. A different payload
+        for the same uuid is `uuid_conflict` (409) and the batch is not stored.
+        A new ball's `seq` must be exactly one higher than the highest seq
+        ever stored, including voided rows. New balls in the batch must
+        continue that sequence with no gaps. Duplicates do not consume a seq.
+        Balls are checked in array order with the precedence in `RULES.md`.
+        The innings must already have been started with `POST /matches/{id}/innings`.
+        A ball does not create an innings.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventBatch"
+      responses:
+        "200":
+          description: Every item was applied or acknowledged as a duplicate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Stored uuid reused with a different delivery.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                uuidConflict:
+                  value:
+                    error: uuid_conflict
+        "422":
+          description: Seq gap or a scoring-rule failure. Nothing from this batch was stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /matches/{id}/events/undo:
+    post:
+      tags: [match]
+      operationId: undoLastEvent
+      security:
+        - scorerToken: []
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: Highest non-voided ball voided and state recomputed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: No non-voided ball remains.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                nothingToUndo:
+                  value:
+                    error: nothing_to_undo
+  /matches/{id}/scorecard:
+    get:
+      tags: [match]
+      operationId: getScorecard
+      description: |
+        Derived scorecard. If the Authorization header is absent the route is
+        public. If the header is present it must be a valid scorer token for
+        this match; a bad token is 401.
+      security:
+        - scorerToken: []
+        - {}
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: Scorecard derived from the same log as the live state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scorecard"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /m/{slug}:
+    get:
+      tags: [public]
+      operationId: getPublicMatch
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Public derived state. No auth. Followers are read-only.
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/match-state.schema.json
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /m/{slug}/scorecard:
+    get:
+      tags: [public]
+      operationId: getPublicScorecard
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: Public scorecard.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scorecard"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /follow/{slug}:
+    get:
+      tags: [public]
+      operationId: followPage
+      security: []
+      description: |
+        HTML scoreboard for the slug. The page renders the public scorecard
+        and subscribes to `/ws/matches/{slug}`. No login. This contract
+        specifies the route only, not the markup.
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: HTML document.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    scorerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: scorer_token
+      description: Plaintext token returned once by POST /matches.
+  parameters:
+    MatchId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9_-]{8,64}$"
+  responses:
+    InvalidRequest:
+      description: Body failed schema validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            invalidRequest:
+              value:
+                error: invalid_request
+    Unauthorized:
+      description: Missing or wrong scorer token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            unauthorized:
+              value:
+                error: unauthorized
+    NotFound:
+      description: Unknown match id or slug.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            notFound:
+              value:
+                error: not_found
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [ok]
+      properties:
+        ok:
+          const: true
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - unauthorized
+            - not_found
+            - id_conflict
+            - uuid_conflict
+            - nothing_to_undo
+            - seq_gap
+            - innings_not_ready
+            - innings_lineup
+            - innings_closed
+            - player_not_on_team
+            - dismissed_player_bats_again
+            - crease_mismatch
+            - opening_bowler_required
+            - same_bowler_consecutive_overs
+            - wide_with_bat_runs
+            - bye_with_bat_runs
+            - leg_bye_with_bat_runs
+            - no_ball_illegal_wicket
+            - wide_illegal_wicket
+            - bye_illegal_wicket
+            - illegal_dismissal
+            - missing_fielder
+            - unexpected_fielder
+            - hint_mismatch
+    CreateMatchRequest:
+      type: object
+      additionalProperties: false
+      required: [overs, teams, toss_winner_team_id, toss_decision]
+      properties:
+        overs:
+          type: integer
+          minimum: 1
+        rules:
+          type: object
+          additionalProperties: false
+          description: Omitted keys default to wide_runs 1, no_ball_runs 1, last_man_stands true.
+          properties:
+            wide_runs:
+              type: integer
+              minimum: 1
+            no_ball_runs:
+              type: integer
+              minimum: 1
+            last_man_stands:
+              type: boolean
+        teams:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/TeamInput"
+        toss_winner_team_id:
+          type: string
+          minLength: 1
+        toss_decision:
+          type: string
+          enum: [bat, bowl]
+    TeamInput:
+      type: object
+      additionalProperties: false
+      required: [id, name, players]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        players:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/PlayerInput"
+    PlayerInput:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+    CreateMatchResponse:
+      type: object
+      additionalProperties: false
+      required: [id, public_slug, scorer_token, state]
+      properties:
+        id:
+          type: string
+          format: uuid
+        public_slug:
+          type: string
+          pattern: "^[A-Za-z0-9_-]{8,64}$"
+        scorer_token:
+          type: string
+          minLength: 22
+        state:
+          $ref: ./schemas/match-state.schema.json
+    InningsStart:
+      type: object
+      additionalProperties: false
+      required:
+        - innings_number
+        - batting_team_id
+        - bowling_team_id
+        - striker_id
+        - non_striker_id
+        - opening_bowler_id
+      properties:
+        innings_number:
+          type: integer
+          enum: [1, 2]
+        batting_team_id:
+          type: string
+          minLength: 1
+        bowling_team_id:
+          type: string
+          minLength: 1
+        striker_id:
+          type: string
+          minLength: 1
+        non_striker_id:
+          type: string
+          minLength: 1
+        opening_bowler_id:
+          type: string
+          minLength: 1
+    EventBatch:
+      type: object
+      additionalProperties: false
+      required: [events]
+      properties:
+        events:
+          type: array
+          minItems: 1
+          items:
+            $ref: ./schemas/ball-event.schema.json
+    EventAck:
+      type: object
+      additionalProperties: false
+      required: [client_uuid, status, seq]
+      properties:
+        client_uuid:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [applied, duplicate]
+        seq:
+          type: integer
+          minimum: 1
+    EventsResponse:
+      type: object
+      additionalProperties: false
+      required: [results, state]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventAck"
+        state:
+          $ref: ./schemas/match-state.schema.json
+    UndoResponse:
+      type: object
+      additionalProperties: false
+      required: [voided_client_uuid, state]
+      properties:
+        voided_client_uuid:
+          type: string
+          format: uuid
+        state:
+          $ref: ./schemas/match-state.schema.json
+    Scorecard:
+      type: object
+      additionalProperties: false
+      required: [status, result, teams, overs, innings]
+      properties:
+        status:
+          $ref: ./schemas/match-state.schema.json#/$defs/status
+        result:
+          $ref: ./schemas/match-state.schema.json#/$defs/result
+        teams:
+          $ref: ./schemas/match-state.schema.json#/$defs/teams
+        overs:
+          $ref: ./schemas/match-state.schema.json#/$defs/scheduledOvers
+        innings:
+          type: array
+          maxItems: 2
+          items:
+            $ref: ./schemas/match-state.schema.json#/$defs/innings

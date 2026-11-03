@@ -1,0 +1,168 @@
+{
+  "name": "No-ball with a four",
+  "description": "The batter keeps the four, extras take rules.no_ball_runs (2 here), and the delivery is not legal.",
+  "setup": {
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 2,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A",
+        "players": [
+          {
+            "id": "a1",
+            "name": "A1"
+          },
+          {
+            "id": "a2",
+            "name": "A2"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "name": "B",
+        "players": [
+          {
+            "id": "b1",
+            "name": "B1"
+          },
+          {
+            "id": "b2",
+            "name": "B2"
+          }
+        ]
+      }
+    ],
+    "toss_winner_team_id": "A",
+    "toss_decision": "bat"
+  },
+  "innings": [
+    {
+      "innings_number": 1,
+      "batting_team_id": "A",
+      "bowling_team_id": "B",
+      "striker_id": "a1",
+      "non_striker_id": "a2",
+      "opening_bowler_id": "b1"
+    }
+  ],
+  "ops": [
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000001",
+        "seq": 1,
+        "innings_number": 1,
+        "striker_id": "a1",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 4,
+        "extra_type": "no_ball",
+        "extra_runs": 0,
+        "wicket_type": null,
+        "dismissed_id": null,
+        "fielder_id": null,
+        "over_index": 0,
+        "ball_in_over": 1
+      }
+    }
+  ],
+  "expect": {
+    "status": "innings_1",
+    "result": null,
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 2,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A"
+      },
+      {
+        "id": "B",
+        "name": "B"
+      }
+    ],
+    "innings": [
+      {
+        "innings_number": 1,
+        "batting_team_id": "A",
+        "bowling_team_id": "B",
+        "runs": 6,
+        "wickets": 0,
+        "overs": {
+          "overs": 0,
+          "balls": 0,
+          "display": "0.0"
+        },
+        "target": null,
+        "complete": false,
+        "extras": {
+          "wide": 0,
+          "no_ball": 2,
+          "bye": 0,
+          "leg_bye": 0,
+          "total": 2
+        },
+        "batting": [
+          {
+            "player_id": "a1",
+            "name": "A1",
+            "runs": 4,
+            "balls": 1,
+            "fours": 1,
+            "sixes": 0,
+            "out": false,
+            "dismissal": "not out"
+          },
+          {
+            "player_id": "a2",
+            "name": "A2",
+            "runs": 0,
+            "balls": 0,
+            "fours": 0,
+            "sixes": 0,
+            "out": false,
+            "dismissal": "not out"
+          }
+        ],
+        "bowling": [
+          {
+            "player_id": "b1",
+            "name": "B1",
+            "overs": {
+              "overs": 0,
+              "balls": 0,
+              "display": "0.0"
+            },
+            "maidens": 0,
+            "runs": 6,
+            "wickets": 0
+          }
+        ],
+        "fall_of_wickets": [],
+        "overs_timeline": [
+          [
+            "nb+4"
+          ]
+        ]
+      }
+    ],
+    "striker_id": "a1",
+    "non_striker_id": "a2",
+    "bowler_id": "b1",
+    "needs_new_batter": null,
+    "needs_new_bowler": false,
+    "crr": null,
+    "rrr": null,
+    "runs_needed": null
+  }
+}

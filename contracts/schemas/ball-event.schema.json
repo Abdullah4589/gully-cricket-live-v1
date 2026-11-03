@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ball-event.schema.json",
+  "title": "BallEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "client_uuid",
+    "seq",
+    "innings_number",
+    "striker_id",
+    "non_striker_id",
+    "bowler_id",
+    "runs_bat",
+    "extra_type",
+    "extra_runs",
+    "wicket_type",
+    "dismissed_id",
+    "fielder_id"
+  ],
+  "properties": {
+    "client_uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "innings_number": {
+      "type": "integer",
+      "enum": [1, 2]
+    },
+    "striker_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "non_striker_id": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ]
+    },
+    "bowler_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runs_bat": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "extra_type": {
+      "anyOf": [
+        { "type": "string", "enum": ["wide", "no_ball", "bye", "leg_bye"] },
+        { "type": "null" }
+      ]
+    },
+    "extra_runs": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "wicket_type": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": ["bowled", "caught", "run_out", "stumped", "lbw", "hit_wicket"]
+        },
+        { "type": "null" }
+      ]
+    },
+    "dismissed_id": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ]
+    },
+    "fielder_id": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ]
+    },
+    "over_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional client hint. 0-based index of the over this delivery is attempting. The engine recomputes it."
+    },
+    "ball_in_over": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6,
+      "description": "Optional client hint. Legal ball (1-6) this delivery is attempting. A wide or no-ball does not advance it."
+    }
+  }
+}

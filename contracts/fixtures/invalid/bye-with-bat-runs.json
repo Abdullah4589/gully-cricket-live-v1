@@ -1,0 +1,151 @@
+{
+  "name": "Bye with bat runs",
+  "description": "A bye must have runs_bat of 0, so this delivery is rejected.",
+  "setup": {
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 1,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A",
+        "players": [
+          {
+            "id": "a1",
+            "name": "A1"
+          },
+          {
+            "id": "a2",
+            "name": "A2"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "name": "B",
+        "players": [
+          {
+            "id": "b1",
+            "name": "B1"
+          },
+          {
+            "id": "b2",
+            "name": "B2"
+          }
+        ]
+      }
+    ],
+    "toss_winner_team_id": "A",
+    "toss_decision": "bat"
+  },
+  "innings": [
+    {
+      "innings_number": 1,
+      "batting_team_id": "A",
+      "bowling_team_id": "B",
+      "striker_id": "a1",
+      "non_striker_id": "a2",
+      "opening_bowler_id": "b1"
+    }
+  ],
+  "ops": [],
+  "illegal": {
+    "op": "ball",
+    "event": {
+      "client_uuid": "00000000-0000-4000-8000-000000000001",
+      "seq": 1,
+      "innings_number": 1,
+      "striker_id": "a1",
+      "non_striker_id": "a2",
+      "bowler_id": "b1",
+      "runs_bat": 1,
+      "extra_type": "bye",
+      "extra_runs": 1,
+      "wicket_type": null,
+      "dismissed_id": null,
+      "fielder_id": null,
+      "over_index": 0,
+      "ball_in_over": 1
+    }
+  },
+  "expect_error": "bye_with_bat_runs",
+  "expect": {
+    "status": "innings_1",
+    "result": null,
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 1,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A"
+      },
+      {
+        "id": "B",
+        "name": "B"
+      }
+    ],
+    "innings": [
+      {
+        "innings_number": 1,
+        "batting_team_id": "A",
+        "bowling_team_id": "B",
+        "runs": 0,
+        "wickets": 0,
+        "overs": {
+          "overs": 0,
+          "balls": 0,
+          "display": "0.0"
+        },
+        "target": null,
+        "complete": false,
+        "extras": {
+          "wide": 0,
+          "no_ball": 0,
+          "bye": 0,
+          "leg_bye": 0,
+          "total": 0
+        },
+        "batting": [
+          {
+            "player_id": "a1",
+            "name": "A1",
+            "runs": 0,
+            "balls": 0,
+            "fours": 0,
+            "sixes": 0,
+            "out": false,
+            "dismissal": "not out"
+          },
+          {
+            "player_id": "a2",
+            "name": "A2",
+            "runs": 0,
+            "balls": 0,
+            "fours": 0,
+            "sixes": 0,
+            "out": false,
+            "dismissal": "not out"
+          }
+        ],
+        "bowling": [],
+        "fall_of_wickets": [],
+        "overs_timeline": []
+      }
+    ],
+    "striker_id": "a1",
+    "non_striker_id": "a2",
+    "bowler_id": "b1",
+    "needs_new_batter": null,
+    "needs_new_bowler": false,
+    "crr": null,
+    "rrr": null,
+    "runs_needed": null
+  }
+}

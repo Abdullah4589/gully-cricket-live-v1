@@ -1,0 +1,174 @@
+{
+  "name": "Run out on a no-ball",
+  "description": "A run out on a no-ball counts as a wicket and adds the no-ball penalty, but the bowler is not credited with the wicket and the ball is not legal.",
+  "setup": {
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 1,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A",
+        "players": [
+          {
+            "id": "a1",
+            "name": "A1"
+          },
+          {
+            "id": "a2",
+            "name": "A2"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "name": "B",
+        "players": [
+          {
+            "id": "b1",
+            "name": "B1"
+          },
+          {
+            "id": "b2",
+            "name": "B2"
+          }
+        ]
+      }
+    ],
+    "toss_winner_team_id": "A",
+    "toss_decision": "bat"
+  },
+  "innings": [
+    {
+      "innings_number": 1,
+      "batting_team_id": "A",
+      "bowling_team_id": "B",
+      "striker_id": "a1",
+      "non_striker_id": "a2",
+      "opening_bowler_id": "b1"
+    }
+  ],
+  "ops": [
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000001",
+        "seq": 1,
+        "innings_number": 1,
+        "striker_id": "a1",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 0,
+        "extra_type": "no_ball",
+        "extra_runs": 0,
+        "wicket_type": "run_out",
+        "dismissed_id": "a1",
+        "fielder_id": "b2",
+        "over_index": 0,
+        "ball_in_over": 1
+      }
+    }
+  ],
+  "expect": {
+    "status": "innings_1",
+    "result": null,
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 1,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A"
+      },
+      {
+        "id": "B",
+        "name": "B"
+      }
+    ],
+    "innings": [
+      {
+        "innings_number": 1,
+        "batting_team_id": "A",
+        "bowling_team_id": "B",
+        "runs": 1,
+        "wickets": 1,
+        "overs": {
+          "overs": 0,
+          "balls": 0,
+          "display": "0.0"
+        },
+        "target": null,
+        "complete": false,
+        "extras": {
+          "wide": 0,
+          "no_ball": 1,
+          "bye": 0,
+          "leg_bye": 0,
+          "total": 1
+        },
+        "batting": [
+          {
+            "player_id": "a1",
+            "name": "A1",
+            "runs": 0,
+            "balls": 1,
+            "fours": 0,
+            "sixes": 0,
+            "out": true,
+            "dismissal": "run out (B2)"
+          },
+          {
+            "player_id": "a2",
+            "name": "A2",
+            "runs": 0,
+            "balls": 0,
+            "fours": 0,
+            "sixes": 0,
+            "out": false,
+            "dismissal": "not out"
+          }
+        ],
+        "bowling": [
+          {
+            "player_id": "b1",
+            "name": "B1",
+            "overs": {
+              "overs": 0,
+              "balls": 0,
+              "display": "0.0"
+            },
+            "maidens": 0,
+            "runs": 1,
+            "wickets": 0
+          }
+        ],
+        "fall_of_wickets": [
+          {
+            "wicket": 1,
+            "runs": 1,
+            "batter_id": "a1"
+          }
+        ],
+        "overs_timeline": [
+          [
+            "nbW"
+          ]
+        ]
+      }
+    ],
+    "striker_id": "a1",
+    "non_striker_id": "a2",
+    "bowler_id": "b1",
+    "needs_new_batter": "striker",
+    "needs_new_bowler": false,
+    "crr": null,
+    "rrr": null,
+    "runs_needed": null
+  }
+}

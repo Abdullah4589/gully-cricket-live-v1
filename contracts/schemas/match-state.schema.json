@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "match-state.schema.json",
+  "title": "MatchState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "result",
+    "overs",
+    "rules",
+    "teams",
+    "innings",
+    "striker_id",
+    "non_striker_id",
+    "bowler_id",
+    "needs_new_batter",
+    "needs_new_bowler",
+    "crr",
+    "rrr",
+    "runs_needed"
+  ],
+  "properties": {
+    "status": { "$ref": "#/$defs/status" },
+    "result": { "$ref": "#/$defs/result" },
+    "overs": { "$ref": "#/$defs/scheduledOvers" },
+    "rules": { "$ref": "#/$defs/rules" },
+    "teams": { "$ref": "#/$defs/teams" },
+    "innings": {
+      "type": "array",
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/innings" }
+    },
+    "striker_id": { "$ref": "#/$defs/nullableId" },
+    "non_striker_id": { "$ref": "#/$defs/nullableId" },
+    "bowler_id": { "$ref": "#/$defs/nullableId" },
+    "needs_new_batter": { "$ref": "#/$defs/needsNewBatter" },
+    "needs_new_bowler": { "type": "boolean" },
+    "crr": { "$ref": "#/$defs/rate" },
+    "rrr": { "$ref": "#/$defs/rate" },
+    "runs_needed": { "$ref": "#/$defs/runsNeeded" }
+  },
+  "$defs": {
+    "status": {
+      "type": "string",
+      "enum": ["not_started", "innings_1", "innings_break", "innings_2", "complete"]
+    },
+    "scheduledOvers": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wide_runs", "no_ball_runs", "last_man_stands"],
+      "properties": {
+        "wide_runs": { "type": "integer", "minimum": 1 },
+        "no_ball_runs": { "type": "integer", "minimum": 1 },
+        "last_man_stands": { "type": "boolean" }
+      }
+    },
+    "teamSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "teams": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/teamSummary" }
+    },
+    "nullableId": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ]
+    },
+    "needsNewBatter": {
+      "anyOf": [
+        { "type": "string", "enum": ["striker", "non_striker"] },
+        { "type": "null" }
+      ]
+    },
+    "rate": {
+      "anyOf": [
+        { "type": "number" },
+        { "type": "null" }
+      ]
+    },
+    "runsNeeded": {
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "null" }
+      ]
+    },
+    "result": {
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/tieResult" },
+        { "$ref": "#/$defs/winResult" }
+      ]
+    },
+    "tieResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tie"],
+      "properties": {
+        "tie": { "const": true }
+      }
+    },
+    "winResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["winner_team_id", "margin", "margin_unit"],
+      "properties": {
+        "winner_team_id": { "type": "string", "minLength": 1 },
+        "margin": { "type": "integer", "minimum": 0 },
+        "margin_unit": { "type": "string", "enum": ["wickets", "runs"] }
+      }
+    },
+    "overs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overs", "balls", "display"],
+      "properties": {
+        "overs": { "type": "integer", "minimum": 0 },
+        "balls": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "display": { "type": "string", "pattern": "^[0-9]+\\.[0-5]$" }
+      }
+    },
+    "extras": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wide", "no_ball", "bye", "leg_bye", "total"],
+      "properties": {
+        "wide": { "type": "integer", "minimum": 0 },
+        "no_ball": { "type": "integer", "minimum": 0 },
+        "bye": { "type": "integer", "minimum": 0 },
+        "leg_bye": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "battingRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["player_id", "name", "runs", "balls", "fours", "sixes", "out", "dismissal"],
+      "properties": {
+        "player_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "runs": { "type": "integer", "minimum": 0 },
+        "balls": { "type": "integer", "minimum": 0 },
+        "fours": { "type": "integer", "minimum": 0 },
+        "sixes": { "type": "integer", "minimum": 0 },
+        "out": { "type": "boolean" },
+        "dismissal": {
+          "type": "string",
+          "pattern": "^(not out|b \\S.*|lbw b \\S.*|hit wicket b \\S.*|c .+ b \\S.*|st .+ b \\S.*|run out \\(.+\\))$"
+        }
+      }
+    },
+    "bowlingRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["player_id", "name", "overs", "maidens", "runs", "wickets"],
+      "properties": {
+        "player_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "overs": { "$ref": "#/$defs/overs" },
+        "maidens": { "type": "integer", "minimum": 0 },
+        "runs": { "type": "integer", "minimum": 0 },
+        "wickets": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "fallOfWicket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wicket", "runs", "batter_id"],
+      "properties": {
+        "wicket": { "type": "integer", "minimum": 1 },
+        "runs": { "type": "integer", "minimum": 0 },
+        "batter_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ballToken": {
+      "type": "string",
+      "pattern": "^(?:W|[1-9][0-9]*W|[0-9]+|[0-9]+(?:b|lb)W?|(?:wd|nb)(?:\\+[1-9][0-9]*)?W?)$"
+    },
+    "innings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "innings_number",
+        "batting_team_id",
+        "bowling_team_id",
+        "runs",
+        "wickets",
+        "overs",
+        "target",
+        "complete",
+        "extras",
+        "batting",
+        "bowling",
+        "fall_of_wickets",
+        "overs_timeline"
+      ],
+      "properties": {
+        "innings_number": { "type": "integer", "enum": [1, 2] },
+        "batting_team_id": { "type": "string", "minLength": 1 },
+        "bowling_team_id": { "type": "string", "minLength": 1 },
+        "runs": { "type": "integer", "minimum": 0 },
+        "wickets": { "type": "integer", "minimum": 0 },
+        "overs": { "$ref": "#/$defs/overs" },
+        "target": {
+          "anyOf": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "null" }
+          ]
+        },
+        "complete": { "type": "boolean" },
+        "extras": { "$ref": "#/$defs/extras" },
+        "batting": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/battingRow" }
+        },
+        "bowling": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/bowlingRow" }
+        },
+        "fall_of_wickets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fallOfWicket" }
+        },
+        "overs_timeline": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/ballToken" }
+          }
+        }
+      }
+    }
+  }
+}

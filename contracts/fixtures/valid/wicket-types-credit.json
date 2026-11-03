@@ -1,0 +1,330 @@
+{
+  "name": "Wicket types credit the bowler",
+  "description": "Caught, bowled, lbw, hit wicket, and stumped each add one to the bowler's wicket tally while the not-out partner stays at the other end.",
+  "setup": {
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 1,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A",
+        "players": [
+          {
+            "id": "a1",
+            "name": "A1"
+          },
+          {
+            "id": "a2",
+            "name": "A2"
+          },
+          {
+            "id": "a3",
+            "name": "A3"
+          },
+          {
+            "id": "a4",
+            "name": "A4"
+          },
+          {
+            "id": "a5",
+            "name": "A5"
+          },
+          {
+            "id": "a6",
+            "name": "A6"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "name": "B",
+        "players": [
+          {
+            "id": "b1",
+            "name": "B1"
+          },
+          {
+            "id": "b2",
+            "name": "B2"
+          }
+        ]
+      }
+    ],
+    "toss_winner_team_id": "A",
+    "toss_decision": "bat"
+  },
+  "innings": [
+    {
+      "innings_number": 1,
+      "batting_team_id": "A",
+      "bowling_team_id": "B",
+      "striker_id": "a1",
+      "non_striker_id": "a2",
+      "opening_bowler_id": "b1"
+    }
+  ],
+  "ops": [
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000001",
+        "seq": 1,
+        "innings_number": 1,
+        "striker_id": "a1",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 0,
+        "extra_type": null,
+        "extra_runs": 0,
+        "wicket_type": "caught",
+        "dismissed_id": "a1",
+        "fielder_id": "b2",
+        "over_index": 0,
+        "ball_in_over": 1
+      }
+    },
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000002",
+        "seq": 2,
+        "innings_number": 1,
+        "striker_id": "a3",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 0,
+        "extra_type": null,
+        "extra_runs": 0,
+        "wicket_type": "bowled",
+        "dismissed_id": "a3",
+        "fielder_id": null,
+        "over_index": 0,
+        "ball_in_over": 2
+      }
+    },
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000003",
+        "seq": 3,
+        "innings_number": 1,
+        "striker_id": "a4",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 0,
+        "extra_type": null,
+        "extra_runs": 0,
+        "wicket_type": "lbw",
+        "dismissed_id": "a4",
+        "fielder_id": null,
+        "over_index": 0,
+        "ball_in_over": 3
+      }
+    },
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000004",
+        "seq": 4,
+        "innings_number": 1,
+        "striker_id": "a5",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 0,
+        "extra_type": null,
+        "extra_runs": 0,
+        "wicket_type": "hit_wicket",
+        "dismissed_id": "a5",
+        "fielder_id": null,
+        "over_index": 0,
+        "ball_in_over": 4
+      }
+    },
+    {
+      "op": "ball",
+      "event": {
+        "client_uuid": "00000000-0000-4000-8000-000000000005",
+        "seq": 5,
+        "innings_number": 1,
+        "striker_id": "a6",
+        "non_striker_id": "a2",
+        "bowler_id": "b1",
+        "runs_bat": 0,
+        "extra_type": null,
+        "extra_runs": 0,
+        "wicket_type": "stumped",
+        "dismissed_id": "a6",
+        "fielder_id": "b2",
+        "over_index": 0,
+        "ball_in_over": 5
+      }
+    }
+  ],
+  "expect": {
+    "status": "innings_1",
+    "result": null,
+    "overs": 2,
+    "rules": {
+      "wide_runs": 1,
+      "no_ball_runs": 1,
+      "last_man_stands": true
+    },
+    "teams": [
+      {
+        "id": "A",
+        "name": "A"
+      },
+      {
+        "id": "B",
+        "name": "B"
+      }
+    ],
+    "innings": [
+      {
+        "innings_number": 1,
+        "batting_team_id": "A",
+        "bowling_team_id": "B",
+        "runs": 0,
+        "wickets": 5,
+        "overs": {
+          "overs": 0,
+          "balls": 5,
+          "display": "0.5"
+        },
+        "target": null,
+        "complete": false,
+        "extras": {
+          "wide": 0,
+          "no_ball": 0,
+          "bye": 0,
+          "leg_bye": 0,
+          "total": 0
+        },
+        "batting": [
+          {
+            "player_id": "a1",
+            "name": "A1",
+            "runs": 0,
+            "balls": 1,
+            "fours": 0,
+            "sixes": 0,
+            "out": true,
+            "dismissal": "c B2 b B1"
+          },
+          {
+            "player_id": "a2",
+            "name": "A2",
+            "runs": 0,
+            "balls": 0,
+            "fours": 0,
+            "sixes": 0,
+            "out": false,
+            "dismissal": "not out"
+          },
+          {
+            "player_id": "a3",
+            "name": "A3",
+            "runs": 0,
+            "balls": 1,
+            "fours": 0,
+            "sixes": 0,
+            "out": true,
+            "dismissal": "b B1"
+          },
+          {
+            "player_id": "a4",
+            "name": "A4",
+            "runs": 0,
+            "balls": 1,
+            "fours": 0,
+            "sixes": 0,
+            "out": true,
+            "dismissal": "lbw b B1"
+          },
+          {
+            "player_id": "a5",
+            "name": "A5",
+            "runs": 0,
+            "balls": 1,
+            "fours": 0,
+            "sixes": 0,
+            "out": true,
+            "dismissal": "hit wicket b B1"
+          },
+          {
+            "player_id": "a6",
+            "name": "A6",
+            "runs": 0,
+            "balls": 1,
+            "fours": 0,
+            "sixes": 0,
+            "out": true,
+            "dismissal": "st B2 b B1"
+          }
+        ],
+        "bowling": [
+          {
+            "player_id": "b1",
+            "name": "B1",
+            "overs": {
+              "overs": 0,
+              "balls": 5,
+              "display": "0.5"
+            },
+            "maidens": 0,
+            "runs": 0,
+            "wickets": 5
+          }
+        ],
+        "fall_of_wickets": [
+          {
+            "wicket": 1,
+            "runs": 0,
+            "batter_id": "a1"
+          },
+          {
+            "wicket": 2,
+            "runs": 0,
+            "batter_id": "a3"
+          },
+          {
+            "wicket": 3,
+            "runs": 0,
+            "batter_id": "a4"
+          },
+          {
+            "wicket": 4,
+            "runs": 0,
+            "batter_id": "a5"
+          },
+          {
+            "wicket": 5,
+            "runs": 0,
+            "batter_id": "a6"
+          }
+        ],
+        "overs_timeline": [
+          [
+            "W",
+            "W",
+            "W",
+            "W",
+            "W"
+          ]
+        ]
+      }
+    ],
+    "striker_id": "a6",
+    "non_striker_id": "a2",
+    "bowler_id": "b1",
+    "needs_new_batter": "striker",
+    "needs_new_bowler": false,
+    "crr": null,
+    "rrr": null,
+    "runs_needed": null
+  }
+}
