@@ -1,0 +1,40 @@
+appId: com.gullycricket.live
+---
+- launchApp
+- tapOn:
+    id: "new-match"
+- tapOn:
+    id: "team-a-name"
+- inputText: "North End"
+- tapOn:
+    id: "team-b-name"
+- inputText: "South End"
+- tapOn:
+    id: "player-a-input"
+- inputText: "Adeel"
+- tapOn:
+    id: "player-a-add"
+- tapOn:
+    id: "player-a-input"
+- inputText: "Bilal"
+- tapOn:
+    id: "player-a-add"
+- tapOn:
+    id: "player-b-input"
+- inputText: "Chand"
+- tapOn:
+    id: "player-b-add"
+- tapOn:
+    id: "player-b-input"
+- inputText: "Danish"
+- tapOn:
+    id: "player-b-add"
+- tapOn:
+    id: "start-match"
+- tapOn:
+    id: "score-1"
+- tapOn:
+    id: "open-scorecard"
+- assertVisible:
+    id: "scorecard-batting"
+- assertVisible: "Batting"
