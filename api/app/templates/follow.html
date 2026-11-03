@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ state.teams[0].name }} vs {{ state.teams[1].name }} — Gully Cricket</title>
+  <style>
+    :root {
+      --bg: #12241c;
+      --cream: #f4efe4;
+      --amber: #f0b429;
+      --wicket: #c4493a;
+      --line: rgba(244, 239, 228, 0.16);
+      --muted: rgba(244, 239, 228, 0.62);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--cream);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+    .kicker {
+      margin: 0;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      color: var(--amber);
+    }
+    h1 {
+      margin: 0.35rem 0 0;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 650;
+      letter-spacing: -0.03em;
+    }
+    h1 span { color: var(--muted); font-weight: 450; }
+    .meta { margin: 0.35rem 0 0; color: var(--muted); }
+    .live {
+      display: inline-block;
+      margin-left: 0.6rem;
+      color: var(--amber);
+      font-size: 0.85rem;
+    }
+    .hero {
+      margin-top: 1.4rem;
+      padding-bottom: 1rem;
+      border-bottom: 3px solid var(--amber);
+    }
+    .score {
+      margin: 0;
+      font-size: clamp(3.4rem, 12vw, 6rem);
+      line-height: 0.9;
+      font-weight: 720;
+      letter-spacing: -0.04em;
+      color: var(--amber);
+      font-variant-numeric: tabular-nums;
+    }
+    .overs {
+      margin: 0.4rem 0 0;
+      font-size: 1.35rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .rates, .summary, .result {
+      margin: 0.7rem 0 0;
+      color: var(--cream);
+    }
+    .result {
+      display: inline-block;
+      margin-top: 0.8rem;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--amber);
+      color: var(--amber);
+    }
+    .over-row { margin-top: 1.2rem; }
+    .over-row h2, .block h2, .cards h3 {
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .tokens { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .token {
+      min-width: 2.2rem;
+      padding: 0.35rem 0.5rem;
+      text-align: center;
+      border: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+    }
+    .token.wicket { color: var(--wicket); border-color: var(--wicket); }
+    .block { margin-top: 1.6rem; }
+    .block-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: baseline;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 0.35rem;
+    }
+    .block-head strong { font-size: 1.15rem; }
+    .facts { color: var(--muted); margin: 0.45rem 0 0.8rem; }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 800px) {
+      .cards { grid-template-columns: 1.4fr 1fr; }
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: right;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+      padding: 0.2rem 0.35rem 0.45rem;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    td {
+      padding: 0.45rem 0.35rem;
+      border-top: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+      vertical-align: top;
+    }
+    .name { display: block; }
+    .how { display: block; color: var(--muted); font-size: 0.85rem; }
+    tr.out .how { color: var(--wicket); }
+    .empty { color: var(--muted); margin: 0; }
+  </style>
+</head>
+<body>
+  <main id="board">
+    {% set latest = state.innings[-1] if state.innings else none %}
+    {% set batting_name = namespace(value='') %}
+    {% if latest %}
+      {% for team in state.teams if team.id == latest.batting_team_id %}
+        {% set batting_name.value = team.name %}
+      {% endfor %}
+    {% endif %}
+    <p class="kicker">Gully Cricket</p>
+    <h1>{{ state.teams[0].name }} <span>vs</span> {{ state.teams[1].name }}</h1>
+    <p class="meta">{{ state.overs }} overs a side · {{ state.status | replace('_', ' ') }}<span id="live" class="live"></span></p>
+    <section class="hero">
+      {% if latest %}
+        <p class="score">{{ latest.runs }}/{{ latest.wickets }}</p>
+        <p class="overs">{{ batting_name.value }} · {{ latest.overs.display }} overs</p>
+        {% if state.innings | length > 1 %}
+          {% set first = state.innings[0] %}
+          {% set first_name = namespace(value=first.batting_team_id) %}
+          {% for team in state.teams if team.id == first.batting_team_id %}
+            {% set first_name.value = team.name %}
+          {% endfor %}
+          <p class="summary">{{ first_name.value }} {{ first.runs }}/{{ first.wickets }} ({{ first.overs.display }})</p>
+        {% endif %}
+      {% else %}
+        <p class="score">–</p>
+        <p class="overs">Waiting for the openers</p>
+      {% endif %}
+      {% if state.crr is not none or state.rrr is not none or state.runs_needed is not none %}
+        <p class="rates">
+          {% if state.runs_needed is not none %}Need {{ state.runs_needed }}{% endif %}
+          {% if state.crr is not none %} · CRR {{ state.crr }}{% endif %}
+          {% if state.rrr is not none %} · RRR {{ state.rrr }}{% endif %}
+        </p>
+      {% endif %}
+      {% if state.result %}
+        {% if state.result.tie %}
+          <p class="result">Match tied</p>
+        {% else %}
+          {% set winner = namespace(value=state.result.winner_team_id) %}
+          {% for team in state.teams if team.id == state.result.winner_team_id %}
+            {% set winner.value = team.name %}
+          {% endfor %}
+          {% set unit = state.result.margin_unit if state.result.margin != 1 else state.result.margin_unit[:-1] %}
+          <p class="result">{{ winner.value }} won by {{ state.result.margin }} {{ unit }}</p>
+        {% endif %}
+      {% endif %}
+    </section>
+    <section class="over-row">
+      <h2>This over</h2>
+      {% if latest and latest.overs_timeline %}
+        <div class="tokens">
+          {% for token in latest.overs_timeline[-1] %}
+            <span class="token{% if token.endswith('W') %} wicket{% endif %}">{{ token }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty">No balls yet</p>
+      {% endif %}
+    </section>
+    {% for inn in state.innings %}
+      {% set side = namespace(value=inn.batting_team_id) %}
+      {% for team in state.teams if team.id == inn.batting_team_id %}
+        {% set side.value = team.name %}
+      {% endfor %}
+      <section class="block">
+        <div class="block-head">
+          <h2>Innings {{ inn.innings_number }}</h2>
+          <strong>{{ side.value }} {{ inn.runs }}/{{ inn.wickets }} ({{ inn.overs.display }})</strong>
+        </div>
+        <p class="facts">
+          Extras Wd {{ inn.extras.wide }} · Nb {{ inn.extras.no_ball }} · B {{ inn.extras.bye }} · Lb {{ inn.extras.leg_bye }} · Total {{ inn.extras.total }}
+          {% if inn.target %} · Target {{ inn.target }}{% endif %}
+        </p>
+        <p class="facts">
+          Fall of wickets:
+          {% if inn.fall_of_wickets %}
+            {% for fow in inn.fall_of_wickets %}
+              {% set batter = namespace(value=fow.batter_id) %}
+              {% for row in inn.batting if row.player_id == fow.batter_id %}
+                {% set batter.value = row.name %}
+              {% endfor %}
+              {{ fow.wicket }}-{{ fow.runs }} ({{ batter.value }}){% if not loop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            none yet
+          {% endif %}
+        </p>
+        <div class="cards">
+          <div>
+            <h3>Batting</h3>
+            <table>
+              <thead>
+                <tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th></tr>
+              </thead>
+              <tbody>
+                {% for row in inn.batting %}
+                  <tr class="{{ 'out' if row.out else '' }}">
+                    <td><span class="name">{{ row.name }}</span><span class="how">{{ row.dismissal }}</span></td>
+                    <td>{{ row.runs }}</td>
+                    <td>{{ row.balls }}</td>
+                    <td>{{ row.fours }}</td>
+                    <td>{{ row.sixes }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3>Bowling</h3>
+            {% if inn.bowling %}
+              <table>
+                <thead>
+                  <tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in inn.bowling %}
+                    <tr>
+                      <td>{{ row.name }}</td>
+                      <td>{{ row.overs.display }}</td>
+                      <td>{{ row.maidens }}</td>
+                      <td>{{ row.runs }}</td>
+                      <td>{{ row.wickets }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="empty">Yet to bowl</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% endfor %}
+  </main>
+  <script id="boot" type="application/json">{{ {"slug": slug, "state": state} | tojson }}</script>
+  <script>
+    const boot = JSON.parse(document.getElementById("boot").textContent);
+    const board = document.getElementById("board");
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    function teamName(state, id) {
+      const team = state.teams.find((item) => item.id === id);
+      return team ? team.name : id;
+    }
+
+    function resultText(state) {
+      const result = state.result;
+      if (!result) return "";
+      if (result.tie) return "Match tied";
+      const unit = result.margin === 1 ? result.margin_unit.slice(0, -1) : result.margin_unit;
+      return teamName(state, result.winner_team_id) + " won by " + result.margin + " " + unit;
+    }
+
+    function tokenHtml(token) {
+      const cls = token.endsWith("W") ? "token wicket" : "token";
+      return '<span class="' + cls + '">' + esc(token) + "</span>";
+    }
+
+    function inningsHtml(state, inn) {
+      const fow = inn.fall_of_wickets.length
+        ? inn.fall_of_wickets.map((item) => {
+            const batter = inn.batting.find((row) => row.player_id === item.batter_id);
+            return item.wicket + "-" + item.runs + " (" + esc(batter ? batter.name : item.batter_id) + ")";
+          }).join(", ")
+        : "none yet";
+      const batting = inn.batting.map((row) =>
+        '<tr class="' + (row.out ? "out" : "") + '"><td><span class="name">' + esc(row.name) +
+        '</span><span class="how">' + esc(row.dismissal) + "</span></td><td>" + row.runs +
+        "</td><td>" + row.balls + "</td><td>" + row.fours + "</td><td>" + row.sixes + "</td></tr>"
+      ).join("");
+      const bowling = inn.bowling.length
+        ? '<table><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th></tr></thead><tbody>' +
+          inn.bowling.map((row) =>
+            "<tr><td>" + esc(row.name) + "</td><td>" + esc(row.overs.display) + "</td><td>" +
+            row.maidens + "</td><td>" + row.runs + "</td><td>" + row.wickets + "</td></tr>"
+          ).join("") + "</tbody></table>"
+        : '<p class="empty">Yet to bowl</p>';
+      const target = inn.target ? " · Target " + inn.target : "";
+      return '<section class="block"><div class="block-head"><h2>Innings ' + inn.innings_number +
+        "</h2><strong>" + esc(teamName(state, inn.batting_team_id)) + " " + inn.runs + "/" +
+        inn.wickets + " (" + esc(inn.overs.display) + ")</strong></div>" +
+        '<p class="facts">Extras Wd ' + inn.extras.wide + " · Nb " + inn.extras.no_ball +
+        " · B " + inn.extras.bye + " · Lb " + inn.extras.leg_bye + " · Total " + inn.extras.total +
+        target + "</p>" +
+        '<p class="facts">Fall of wickets: ' + fow + "</p>" +
+        '<div class="cards"><div><h3>Batting</h3><table><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th></tr></thead><tbody>' +
+        batting + "</tbody></table></div><div><h3>Bowling</h3>" + bowling + "</div></div></section>";
+    }
+
+    function render(state) {
+      const latest = state.innings.length ? state.innings[state.innings.length - 1] : null;
+      const first = state.innings.length > 1 ? state.innings[0] : null;
+      let hero = '<p class="score">–</p><p class="overs">Waiting for the openers</p>';
+      if (latest) {
+        hero = '<p class="score">' + latest.runs + "/" + latest.wickets + "</p>" +
+          '<p class="overs">' + esc(teamName(state, latest.batting_team_id)) + " · " +
+          esc(latest.overs.display) + " overs</p>";
+        if (first) {
+          hero += '<p class="summary">' + esc(teamName(state, first.batting_team_id)) + " " +
+            first.runs + "/" + first.wickets + " (" + esc(first.overs.display) + ")</p>";
+        }
+      }
+      const bits = [];
+      if (state.runs_needed !== null && state.runs_needed !== undefined) bits.push("Need " + state.runs_needed);
+      if (state.crr !== null && state.crr !== undefined) bits.push("CRR " + state.crr);
+      if (state.rrr !== null && state.rrr !== undefined) bits.push("RRR " + state.rrr);
+      if (bits.length) hero += '<p class="rates">' + esc(bits.join(" · ")) + "</p>";
+      const result = resultText(state);
+      if (result) hero += '<p class="result">' + esc(result) + "</p>";
+      const tokens = latest && latest.overs_timeline.length
+        ? '<div class="tokens">' + latest.overs_timeline[latest.overs_timeline.length - 1].map(tokenHtml).join("") + "</div>"
+        : '<p class="empty">No balls yet</p>';
+      board.innerHTML =
+        '<p class="kicker">Gully Cricket</p>' +
+        "<h1>" + esc(state.teams[0].name) + " <span>vs</span> " + esc(state.teams[1].name) + "</h1>" +
+        '<p class="meta">' + state.overs + " overs a side · " + esc(state.status.replaceAll("_", " ")) +
+        '<span id="live" class="live"></span></p>' +
+        '<section class="hero">' + hero + "</section>" +
+        '<section class="over-row"><h2>This over</h2>' + tokens + "</section>" +
+        state.innings.map((inn) => inningsHtml(state, inn)).join("");
+      const live = document.getElementById("live");
+      if (live && board.dataset.connected === "1") live.textContent = "· Live";
+    }
+
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      const socket = new WebSocket(proto + "//" + location.host + "/ws/matches/" + boot.slug);
+      socket.onopen = () => {
+        board.dataset.connected = "1";
+        const live = document.getElementById("live");
+        if (live) live.textContent = "· Live";
+      };
+      socket.onmessage = (event) => {
+        const frame = JSON.parse(event.data);
+        if (frame.type === "snapshot" || frame.type === "ball" || frame.type === "undo") {
+          render(frame.state);
+        }
+      };
+      socket.onclose = () => {
+        board.dataset.connected = "0";
+        const live = document.getElementById("live");
+        if (live) live.textContent = "";
+        setTimeout(connect, 1500);
+      };
+    }
+
+    connect();
+  </script>
+</body>
+</html>

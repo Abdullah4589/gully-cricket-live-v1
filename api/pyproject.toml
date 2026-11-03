@@ -1,0 +1,49 @@
+[project]
+name = "gully-cricket-api"
+version = "1.0.0"
+description = "Gully Cricket Live scoring API"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.14",
+    "asyncpg>=0.30",
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "pydantic>=2.10",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "uvicorn[standard]>=0.32",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "testcontainers[postgres]>=4.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["app"]
+exclude = ["alembic"]
+warn_unused_ignores = true
