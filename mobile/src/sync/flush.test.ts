@@ -200,4 +200,38 @@ describe("outbox flush", () => {
       "POST events",
     ]);
   });
+
+  it("keeps create, innings, and events queued when the API is down", async () => {
+    const secondInnings: InningsStart = {
+      innings_number: 2,
+      batting_team_id: "team-b",
+      bowling_team_id: "team-a",
+      striker_id: "b1",
+      non_striker_id: "b2",
+      opening_bowler_id: "a1",
+    };
+    const repo = memory([
+      { id: 9, localId: "local", kind: "create_match", payload: setup },
+      { id: 10, localId: "local", kind: "start_innings", payload: innings },
+      { id: 11, localId: "local", kind: "events", payload: ball },
+      { id: 12, localId: "local", kind: "start_innings", payload: secondInnings },
+    ]);
+    const fetchImpl = async () => {
+      throw new TypeError("fetch failed");
+    };
+
+    const result = await flushMatchQueue(repo, "local", {
+      baseUrl: "http://127.0.0.1:8000",
+      fetchImpl,
+    });
+
+    expect(result).toEqual({ acked: 0, error: "network" });
+    expect(repo.rows.map((row) => row.kind)).toEqual([
+      "create_match",
+      "start_innings",
+      "events",
+      "start_innings",
+    ]);
+    expect(repo.balls).toEqual([ball.client_uuid]);
+  });
 });
