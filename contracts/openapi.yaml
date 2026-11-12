@@ -567,7 +567,7 @@ components:
     Scorecard:
       type: object
       additionalProperties: false
-      required: [status, result, teams, overs, innings]
+      required: [status, result, teams, overs, innings, toss]
       properties:
         status:
           $ref: ./schemas/match-state.schema.json#/$defs/status
@@ -582,3 +582,5 @@ components:
           maxItems: 2
           items:
             $ref: ./schemas/match-state.schema.json#/$defs/innings
+        toss:
+          $ref: ./schemas/match-state.schema.json#/$defs/toss
