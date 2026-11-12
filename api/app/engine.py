@@ -242,15 +242,20 @@ def resolve_rules(raw: Mapping[str, Any] | None) -> Rules:
     )
 
 
-def round_rate(numerator: int, denominator: int) -> int | float:
+def round_half_away(numerator: int, denominator: int) -> int | float:
     """Round half away from zero to 2 decimal places. Whole numbers stay ints."""
-    quantized = (Decimal(numerator) * Decimal(6) / Decimal(denominator)).quantize(
+    quantized = (Decimal(numerator) / Decimal(denominator)).quantize(
         Decimal("0.01"),
         rounding=ROUND_HALF_UP,
     )
     if quantized == quantized.to_integral_value():
         return int(quantized)
     return float(json.loads(format(quantized, "f")))
+
+
+def round_rate(numerator: int, denominator: int) -> int | float:
+    """Current or required rate: runs * 6 / balls."""
+    return round_half_away(numerator * 6, denominator)
 
 
 def overs_dict(legal: int) -> dict[str, Any]:

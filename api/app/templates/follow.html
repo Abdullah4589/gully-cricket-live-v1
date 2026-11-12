@@ -135,6 +135,17 @@
     .how { display: block; color: var(--muted); font-size: 0.85rem; }
     tr.out .how { color: var(--wicket); }
     .empty { color: var(--muted); margin: 0; }
+    .crease-line, .over-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.75rem;
+      align-items: baseline;
+      padding: 0.4rem 0;
+      border-top: 1px solid var(--line);
+    }
+    .role, .over-label { color: var(--muted); min-width: 6.2rem; }
+    .over-total { margin-left: auto; font-variant-numeric: tabular-nums; }
+    .rate { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -149,6 +160,7 @@
     <p class="kicker">Gully Cricket</p>
     <h1>{{ state.teams[0].name }} <span>vs</span> {{ state.teams[1].name }}</h1>
     <p class="meta">{{ state.overs }} overs a side · {{ state.status | replace('_', ' ') }}<span id="live" class="live"></span></p>
+    <p class="meta">{{ toss_line(state) }}</p>
     <section class="hero">
       {% if latest %}
         <p class="score">{{ latest.runs }}/{{ latest.wickets }}</p>
@@ -165,12 +177,12 @@
         <p class="score">–</p>
         <p class="overs">Waiting for the openers</p>
       {% endif %}
-      {% if state.crr is not none or state.rrr is not none or state.runs_needed is not none %}
-        <p class="rates">
-          {% if state.runs_needed is not none %}Need {{ state.runs_needed }}{% endif %}
-          {% if state.crr is not none %} · CRR {{ state.crr }}{% endif %}
-          {% if state.rrr is not none %} · RRR {{ state.rrr }}{% endif %}
-        </p>
+      {% set bits = [] %}
+      {% if state.runs_needed is not none %}{% set _ = bits.append("Need " ~ state.runs_needed) %}{% endif %}
+      {% if state.crr is not none %}{% set _ = bits.append("CRR " ~ state.crr) %}{% endif %}
+      {% if state.rrr is not none %}{% set _ = bits.append("RRR " ~ state.rrr) %}{% endif %}
+      {% if bits %}
+        <p class="rates">{{ bits | join(" · ") }}</p>
       {% endif %}
       {% if state.result %}
         {% if state.result.tie %}
@@ -185,14 +197,36 @@
         {% endif %}
       {% endif %}
     </section>
+    {% set crease = crease_view(state) %}
+    {% if crease %}
+      <section class="crease">
+        <h2>At the crease</h2>
+        <p class="crease-line"><span class="role">Striker</span> <span class="who">{{ crease.striker_name }}</span> <strong>{{ crease.striker_score }}</strong> <span class="rate">SR {{ crease.striker_sr }}</span></p>
+        {% if crease.non_striker_name is none %}
+          <p class="crease-line"><span class="role">Non-striker</span> batting alone</p>
+        {% else %}
+          <p class="crease-line"><span class="role">Non-striker</span> <span class="who">{{ crease.non_striker_name }}</span> <strong>{{ crease.non_striker_score }}</strong> <span class="rate">SR {{ crease.non_striker_sr }}</span></p>
+        {% endif %}
+        <p class="crease-line"><span class="role">Bowler</span> <span class="who">{{ crease.bowler_name }}</span> <strong>{{ crease.bowler_figures }}</strong> <span class="rate">Econ {{ crease.bowler_econ }}</span></p>
+        <p class="crease-line"><span class="role">Partnership</span> <strong>{{ crease.partnership }}</strong></p>
+      </section>
+    {% endif %}
     <section class="over-row">
-      <h2>This over</h2>
+      <h2>Recent overs</h2>
       {% if latest and latest.overs_timeline %}
-        <div class="tokens">
-          {% for token in latest.overs_timeline[-1] %}
-            <span class="token{% if token.endswith('W') %} wicket{% endif %}">{{ token }}</span>
-          {% endfor %}
-        </div>
+        {% for over in latest.overs_timeline %}
+          {% if loop.index0 >= latest.overs_timeline|length - 4 %}
+            <div class="over-line">
+              <span class="over-label">Over {{ loop.index }}</span>
+              <div class="tokens">
+                {% for token in over %}
+                  <span class="token{% if token.endswith('W') %} wicket{% endif %}">{{ token }}</span>
+                {% endfor %}
+              </div>
+              <strong class="over-total">{{ over_total(over, state.rules.wide_runs, state.rules.no_ball_runs) }}</strong>
+            </div>
+          {% endif %}
+        {% endfor %}
       {% else %}
         <p class="empty">No balls yet</p>
       {% endif %}
@@ -207,9 +241,11 @@
           <h2>Innings {{ inn.innings_number }}</h2>
           <strong>{{ side.value }} {{ inn.runs }}/{{ inn.wickets }} ({{ inn.overs.display }})</strong>
         </div>
+        {% set rate = innings_crr(inn.runs, inn.overs.overs, inn.overs.balls) %}
         <p class="facts">
           Extras Wd {{ inn.extras.wide }} · Nb {{ inn.extras.no_ball }} · B {{ inn.extras.bye }} · Lb {{ inn.extras.leg_bye }} · Total {{ inn.extras.total }}
           {% if inn.target %} · Target {{ inn.target }}{% endif %}
+          {% if rate %} · CRR {{ rate }}{% endif %}
         </p>
         <p class="facts">
           Fall of wickets:
@@ -230,7 +266,7 @@
             <h3>Batting</h3>
             <table>
               <thead>
-                <tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th></tr>
+                <tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr>
               </thead>
               <tbody>
                 {% for row in inn.batting %}
@@ -240,6 +276,7 @@
                     <td>{{ row.balls }}</td>
                     <td>{{ row.fours }}</td>
                     <td>{{ row.sixes }}</td>
+                    <td>{{ strike_rate(row.runs, row.balls) }}</td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -250,7 +287,7 @@
             {% if inn.bowling %}
               <table>
                 <thead>
-                  <tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th></tr>
+                  <tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr>
                 </thead>
                 <tbody>
                   {% for row in inn.bowling %}
@@ -260,6 +297,7 @@
                       <td>{{ row.maidens }}</td>
                       <td>{{ row.runs }}</td>
                       <td>{{ row.wickets }}</td>
+                      <td>{{ economy(row.runs, row.overs.overs * 6 + row.overs.balls) }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -269,100 +307,30 @@
             {% endif %}
           </div>
         </div>
+        <h3>Partnerships</h3>
+        <table>
+          <thead><tr><th>Wkt</th><th>Batters</th><th></th></tr></thead>
+          <tbody>
+            {% for pair in inn.partnerships %}
+              <tr>
+                <td>{{ pair.wicket }}</td>
+                <td>{{ partnership_line(inn, pair) }}</td>
+                <td>{{ pair.runs }} ({{ pair.balls }})</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </section>
     {% endfor %}
   </main>
   <script id="boot" type="application/json">{{ {"slug": slug, "state": state} | tojson }}</script>
   <script>
+    {% include "follow_view.js" %}
     const boot = JSON.parse(document.getElementById("boot").textContent);
     const board = document.getElementById("board");
 
-    function esc(value) {
-      return String(value).replace(/[&<>"']/g, (ch) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      })[ch]);
-    }
-
-    function teamName(state, id) {
-      const team = state.teams.find((item) => item.id === id);
-      return team ? team.name : id;
-    }
-
-    function resultText(state) {
-      const result = state.result;
-      if (!result) return "";
-      if (result.tie) return "Match tied";
-      const unit = result.margin === 1 ? result.margin_unit.slice(0, -1) : result.margin_unit;
-      return teamName(state, result.winner_team_id) + " won by " + result.margin + " " + unit;
-    }
-
-    function tokenHtml(token) {
-      const cls = token.endsWith("W") ? "token wicket" : "token";
-      return '<span class="' + cls + '">' + esc(token) + "</span>";
-    }
-
-    function inningsHtml(state, inn) {
-      const fow = inn.fall_of_wickets.length
-        ? inn.fall_of_wickets.map((item) => {
-            const batter = inn.batting.find((row) => row.player_id === item.batter_id);
-            return item.wicket + "-" + item.runs + " (" + esc(batter ? batter.name : item.batter_id) + ")";
-          }).join(", ")
-        : "none yet";
-      const batting = inn.batting.map((row) =>
-        '<tr class="' + (row.out ? "out" : "") + '"><td><span class="name">' + esc(row.name) +
-        '</span><span class="how">' + esc(row.dismissal) + "</span></td><td>" + row.runs +
-        "</td><td>" + row.balls + "</td><td>" + row.fours + "</td><td>" + row.sixes + "</td></tr>"
-      ).join("");
-      const bowling = inn.bowling.length
-        ? '<table><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th></tr></thead><tbody>' +
-          inn.bowling.map((row) =>
-            "<tr><td>" + esc(row.name) + "</td><td>" + esc(row.overs.display) + "</td><td>" +
-            row.maidens + "</td><td>" + row.runs + "</td><td>" + row.wickets + "</td></tr>"
-          ).join("") + "</tbody></table>"
-        : '<p class="empty">Yet to bowl</p>';
-      const target = inn.target ? " · Target " + inn.target : "";
-      return '<section class="block"><div class="block-head"><h2>Innings ' + inn.innings_number +
-        "</h2><strong>" + esc(teamName(state, inn.batting_team_id)) + " " + inn.runs + "/" +
-        inn.wickets + " (" + esc(inn.overs.display) + ")</strong></div>" +
-        '<p class="facts">Extras Wd ' + inn.extras.wide + " · Nb " + inn.extras.no_ball +
-        " · B " + inn.extras.bye + " · Lb " + inn.extras.leg_bye + " · Total " + inn.extras.total +
-        target + "</p>" +
-        '<p class="facts">Fall of wickets: ' + fow + "</p>" +
-        '<div class="cards"><div><h3>Batting</h3><table><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th></tr></thead><tbody>' +
-        batting + "</tbody></table></div><div><h3>Bowling</h3>" + bowling + "</div></div></section>";
-    }
-
     function render(state) {
-      const latest = state.innings.length ? state.innings[state.innings.length - 1] : null;
-      const first = state.innings.length > 1 ? state.innings[0] : null;
-      let hero = '<p class="score">–</p><p class="overs">Waiting for the openers</p>';
-      if (latest) {
-        hero = '<p class="score">' + latest.runs + "/" + latest.wickets + "</p>" +
-          '<p class="overs">' + esc(teamName(state, latest.batting_team_id)) + " · " +
-          esc(latest.overs.display) + " overs</p>";
-        if (first) {
-          hero += '<p class="summary">' + esc(teamName(state, first.batting_team_id)) + " " +
-            first.runs + "/" + first.wickets + " (" + esc(first.overs.display) + ")</p>";
-        }
-      }
-      const bits = [];
-      if (state.runs_needed !== null && state.runs_needed !== undefined) bits.push("Need " + state.runs_needed);
-      if (state.crr !== null && state.crr !== undefined) bits.push("CRR " + state.crr);
-      if (state.rrr !== null && state.rrr !== undefined) bits.push("RRR " + state.rrr);
-      if (bits.length) hero += '<p class="rates">' + esc(bits.join(" · ")) + "</p>";
-      const result = resultText(state);
-      if (result) hero += '<p class="result">' + esc(result) + "</p>";
-      const tokens = latest && latest.overs_timeline.length
-        ? '<div class="tokens">' + latest.overs_timeline[latest.overs_timeline.length - 1].map(tokenHtml).join("") + "</div>"
-        : '<p class="empty">No balls yet</p>';
-      board.innerHTML =
-        '<p class="kicker">Gully Cricket</p>' +
-        "<h1>" + esc(state.teams[0].name) + " <span>vs</span> " + esc(state.teams[1].name) + "</h1>" +
-        '<p class="meta">' + state.overs + " overs a side · " + esc(state.status.replaceAll("_", " ")) +
-        '<span id="live" class="live"></span></p>' +
-        '<section class="hero">' + hero + "</section>" +
-        '<section class="over-row"><h2>This over</h2>' + tokens + "</section>" +
-        state.innings.map((inn) => inningsHtml(state, inn)).join("");
+      board.innerHTML = boardHtml(state);
       const live = document.getElementById("live");
       if (live && board.dataset.connected === "1") live.textContent = "· Live";
     }
@@ -389,6 +357,7 @@
       };
     }
 
+    render(boot.state);
     connect();
   </script>
 </body>

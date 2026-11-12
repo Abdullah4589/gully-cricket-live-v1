@@ -13,11 +13,29 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.auth import SLUG_RE
 from app.broadcast import BroadcastHub, Subscription
+from app.display import (
+    crease_view,
+    economy,
+    innings_crr,
+    over_total,
+    partnership_line,
+    strike_rate,
+    toss_line,
+)
 from app.errors import ApiError
 from app.persist import load_by_slug, scorecard
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+templates.env.globals.update(
+    crease_view=crease_view,
+    economy=economy,
+    innings_crr=innings_crr,
+    over_total=over_total,
+    partnership_line=partnership_line,
+    strike_rate=strike_rate,
+    toss_line=toss_line,
+)
 
 
 @router.get("/healthz")
