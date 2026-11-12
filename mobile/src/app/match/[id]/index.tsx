@@ -97,7 +97,7 @@ function ScoreBoard() {
           Need {state.runs_needed ?? 0} · CRR {showRate(state.crr)} · RRR {showRate(state.rrr)}
         </Text>
       ) : null}
-      {state.status === "innings_1" && state.crr !== null ? (
+      {state.status !== "innings_2" && state.crr !== null ? (
         <Text style={styles.rates} testID="live-rates">
           CRR {showRate(state.crr)}
         </Text>

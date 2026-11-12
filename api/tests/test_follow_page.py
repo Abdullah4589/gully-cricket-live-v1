@@ -61,6 +61,7 @@ def test_script_updates_crease_after_a_ball_and_an_undo() -> None:
     assert "A2 1 (1), A3 6 (1)" in html
     assert "CRR 18" in html
     assert "<th>SR</th>" in html and "<th>Econ</th>" in html
+    assert "<th>Runs</th>" in html
     assert ">250</td>" in html
 
     engine = Engine(fixture["setup"])
@@ -92,6 +93,7 @@ def test_jinja_page_matches_the_partnership_fixture() -> None:
     assert "A1 5 (2), A2 5 (2)" in html
     assert "CRR 18" in html
     assert "<th>SR</th>" in html and "<th>Econ</th>" in html
+    assert "<th>Runs</th>" in html
     assert "render(frame.state)" in html
 
 

@@ -26,18 +26,8 @@ jest.mock("../../../db/database", () => ({
   undoBall: jest.fn(),
 }));
 
-const fixturePath = join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "..",
-  "..",
-  "contracts",
-  "fixtures",
-  "valid",
-  "partnership-run-out-change.json",
-);
+const fixturesDir = join(__dirname, "..", "..", "..", "..", "..", "contracts", "fixtures", "valid");
+const fixturePath = join(fixturesDir, "partnership-run-out-change.json");
 
 function loadPartnership() {
   const fixture = JSON.parse(readFileSync(fixturePath, "utf8")) as ReplayFixture;
@@ -68,6 +58,24 @@ describe("match pages", () => {
     expect(crease).toHaveTextContent(/Partnership\s+7 \(2\)/);
     expect(view.getByTestId("live-rates")).toHaveTextContent(/^CRR 18$/);
     expect(view.getByTestId("live-rates")).not.toHaveTextContent("RRR");
+  });
+
+  it("shows the current rate during the innings break", async () => {
+    const fixture = JSON.parse(
+      readFileSync(join(fixturesDir, "last-man-stands-off.json"), "utf8"),
+    ) as ReplayFixture;
+    useMatchStore.setState({
+      localId: "local-1",
+      doc: createMatch(fixture.setup),
+      state: replayFixture(fixture),
+      publicSlug: null,
+      loading: false,
+      error: null,
+      pendingCrease: null,
+      pendingBowlerId: null,
+    });
+    const view = await render(<ScoringScreen />);
+    expect(view.getByTestId("live-rates")).toHaveTextContent(/^CRR 0$/);
   });
 
   it("shows toss, columns, and partnerships on the scorecard", async () => {

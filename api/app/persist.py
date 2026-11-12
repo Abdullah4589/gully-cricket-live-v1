@@ -28,6 +28,7 @@ def scorecard(state: dict[str, Any]) -> dict[str, Any]:
         "result": state["result"],
         "teams": state["teams"],
         "overs": state["overs"],
+        "toss": state["toss"],
         "innings": state["innings"],
     }
 

@@ -172,7 +172,7 @@ function inningsHtml(state, innings) {
     '<p class="facts">Fall of wickets: ' + fow + "</p>" +
     '<div class="cards"><div><h3>Batting</h3><table><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>' +
     batting + "</tbody></table></div><div><h3>Bowling</h3>" + bowling + "</div></div>" +
-    '<h3>Partnerships</h3><table><thead><tr><th>Wkt</th><th>Batters</th><th></th></tr></thead><tbody>' +
+    '<h3>Partnerships</h3><table><thead><tr><th>Wkt</th><th>Batters</th><th>Runs</th></tr></thead><tbody>' +
     partnershipRows(innings) + "</tbody></table></section>";
 }
 

@@ -82,7 +82,7 @@ flowchart LR
 
 The phone is the scorer. SQLite holds the match and an ordered outbox. The API is the sync target and the public read side. Postgres stores the ball log. The follow page renders the score and then listens on `/ws/matches/{slug}` for a snapshot, each new ball, and undo.
 
-The follow page and the phone scorecard use the derived state. At the crease: striker and non-striker with runs, balls, and strike rate; the bowler with overs, maidens, runs, wickets, and economy; and the current partnership. Recent overs on the follow page show each ball and that over's total. The toss line is who won it and whether they chose to bat or bowl. Both scorecards add strike rate, economy, and the partnerships for each innings. The phone scorecard also shows fours and sixes. Strike rate is runs per 100 balls faced. Economy is runs per over. A dash means that count is zero. The current rate is filled in the first innings as well as the chase. A new ball and an undo recompute all of it from the ball log.
+The follow page and the phone scorecard use the derived state. At the crease: striker and non-striker with runs, balls, and strike rate; the bowler with overs, maidens, runs, wickets, and economy; and the current partnership. Recent overs on the follow page show each ball and that over's total. The toss line is who won it and whether they chose to bat or bowl. Both scorecards show fours, sixes, strike rate, economy, and the partnerships for each innings. Strike rate is runs per 100 balls faced. Economy is runs per over. A dash means that count is zero. The current rate is filled in the first innings as well as the chase. A new ball and an undo recompute all of it from the ball log.
 
 ## Design decisions
 
