@@ -18,7 +18,8 @@
     "needs_new_bowler",
     "crr",
     "rrr",
-    "runs_needed"
+    "runs_needed",
+    "toss"
   ],
   "properties": {
     "status": { "$ref": "#/$defs/status" },
@@ -38,7 +39,8 @@
     "needs_new_bowler": { "type": "boolean" },
     "crr": { "$ref": "#/$defs/rate" },
     "rrr": { "$ref": "#/$defs/rate" },
-    "runs_needed": { "$ref": "#/$defs/runsNeeded" }
+    "runs_needed": { "$ref": "#/$defs/runsNeeded" },
+    "toss": { "$ref": "#/$defs/toss" }
   },
   "$defs": {
     "status": {
@@ -97,6 +99,41 @@
         { "type": "integer", "minimum": 0 },
         { "type": "null" }
       ]
+    },
+    "toss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["winner_team_id", "decision"],
+      "properties": {
+        "winner_team_id": { "type": "string", "minLength": 1 },
+        "decision": { "type": "string", "enum": ["bat", "bowl"] }
+      }
+    },
+    "partnership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wicket",
+        "batter1_id",
+        "batter1_runs",
+        "batter1_balls",
+        "batter2_id",
+        "batter2_runs",
+        "batter2_balls",
+        "runs",
+        "balls"
+      ],
+      "properties": {
+        "wicket": { "type": "integer", "minimum": 1 },
+        "batter1_id": { "type": "string", "minLength": 1 },
+        "batter1_runs": { "type": "integer", "minimum": 0 },
+        "batter1_balls": { "type": "integer", "minimum": 0 },
+        "batter2_id": { "$ref": "#/$defs/nullableId" },
+        "batter2_runs": { "type": "integer", "minimum": 0 },
+        "batter2_balls": { "type": "integer", "minimum": 0 },
+        "runs": { "type": "integer", "minimum": 0 },
+        "balls": { "type": "integer", "minimum": 0 }
+      }
     },
     "result": {
       "anyOf": [
@@ -206,7 +243,8 @@
         "batting",
         "bowling",
         "fall_of_wickets",
-        "overs_timeline"
+        "overs_timeline",
+        "partnerships"
       ],
       "properties": {
         "innings_number": { "type": "integer", "enum": [1, 2] },
@@ -242,6 +280,11 @@
             "type": "array",
             "items": { "$ref": "#/$defs/ballToken" }
           }
+        },
+        "partnerships": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/partnership" }
         }
       }
     }

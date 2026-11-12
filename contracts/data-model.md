@@ -87,5 +87,5 @@ Unique `(match_id, seq)` and unique `client_uuid`.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `match_id` | uuid | Primary key. References `matches.id`. |
-| `state_json` | json | Derived `MatchState`. |
+| `state_json` | json | Derived `MatchState`, including `toss` and each innings' `partnerships`. Neither is a table. |
 | `updated_at` | timestamptz | UTC, set on every rebuild. |

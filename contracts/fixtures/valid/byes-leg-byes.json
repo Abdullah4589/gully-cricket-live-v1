@@ -193,6 +193,19 @@
             "1lb",
             "2b"
           ]
+        ],
+        "partnerships": [
+          {
+            "wicket": 1,
+            "batter1_id": "a1",
+            "batter1_runs": 0,
+            "batter1_balls": 2,
+            "batter2_id": "a2",
+            "batter2_runs": 0,
+            "batter2_balls": 1,
+            "runs": 4,
+            "balls": 3
+          }
         ]
       }
     ],
@@ -201,8 +214,12 @@
     "bowler_id": "b1",
     "needs_new_batter": null,
     "needs_new_bowler": false,
-    "crr": null,
+    "crr": 8,
     "rrr": null,
-    "runs_needed": null
+    "runs_needed": null,
+    "toss": {
+      "winner_team_id": "A",
+      "decision": "bat"
+    }
   }
 }

@@ -28,6 +28,8 @@ export type {
   Extras,
   ExtraType,
   FallOfWicket,
+  Partnership,
+  Toss,
   InningsStart,
   InningsView,
   LegalBallInput,

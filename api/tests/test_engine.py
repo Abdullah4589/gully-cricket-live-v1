@@ -25,6 +25,30 @@ def test_valid_fixture(path: Path) -> None:
     assert play_valid(fixture) == fixture["expect"]
 
 
+@pytest.mark.parametrize("path", VALID, ids=lambda path: path.name)
+def test_partnerships_match_the_card(path: Path) -> None:
+    state = play_valid(_load(path))
+    for innings in state["innings"]:
+        pairs = innings["partnerships"]
+        pair_runs = sum(pair["runs"] for pair in pairs)
+        pair_balls = sum(pair["balls"] for pair in pairs)
+        card_balls = sum(row["balls"] for row in innings["batting"])
+        assert pair_runs == innings["runs"]
+        assert pair_balls == card_balls
+        scored: dict[str, int] = {}
+        for pair in pairs:
+            first = pair["batter1_id"]
+            scored[first] = scored.get(first, 0) + pair["batter1_runs"]
+            second = pair["batter2_id"]
+            if second is not None:
+                scored[second] = scored.get(second, 0) + pair["batter2_runs"]
+            else:
+                assert pair["batter2_runs"] == 0
+                assert pair["batter2_balls"] == 0
+        for row in innings["batting"]:
+            assert scored.get(row["player_id"], 0) == row["runs"]
+
+
 @pytest.mark.parametrize("path", INVALID, ids=lambda path: path.name)
 def test_invalid_fixture(path: Path) -> None:
     fixture = _load(path)

@@ -223,7 +223,7 @@ Innings 2 result, in this order:
 { "tie": true }
 ```
 
-Rates are set only while status is `innings_2`. Otherwise `crr`, `rrr`, and `runs_needed` are null.
+`crr` is the rate of the innings in progress, and of innings 1 during `innings_break`. It is null when that innings has no legal ball, and null when status is `not_started` or `complete`. `rrr` and `runs_needed` are set only while status is `innings_2`. Otherwise they are null.
 
 ```text
 runs_needed = max(target - runs, 0)
@@ -259,7 +259,8 @@ Recompute from a fresh `not_started` state: for each started innings in order, a
   "needs_new_bowler": false,
   "crr": null,
   "rrr": null,
-  "runs_needed": null
+  "runs_needed": null,
+  "toss": { "winner_team_id": "A", "decision": "bat" }
 }
 ```
 
@@ -275,6 +276,20 @@ Every derived innings satisfies:
 - bowling legal balls = innings legal balls
 
 `bowler_id` stays as the opening bowler until a ball is bowled, then as the bowler of the last delivery, even when `needs_new_bowler` is true.
+
+`toss` is `{ "winner_team_id", "decision" }` from setup. `decision` is `bat` or `bowl`. It is present before the first innings.
+
+## Partnerships
+
+Each innings has `partnerships`, in the order the pairs stood together. A pair is the two batters at the crease, or one batter when `non_striker_id` is null. The list always has at least the opening pair, created at innings start with every count at 0.
+
+`wicket` is 1 for the openers and increases by 1 for each later pair. It is the partnership number, not a promise that a wicket has fallen. `batter1_id` is the opening striker, or the not-out batter who stayed. `batter2_id` is the opening non-striker, or the batter who joined, or null when one batter is alone. `batter2_runs` and `batter2_balls` are 0 when `batter2_id` is null.
+
+On each delivery, add that delivery to the open pair when the crease is the same pair. When the crease is a new pair, close the previous pair and open the next one before adding the delivery. The replacement is named by the next delivery, so the state between a wicket and that delivery has no new row yet.
+
+Pair runs are the team runs of those deliveries, including extras and the wide and no-ball penalties. Pair balls, and each batter's balls, count a delivery only when it is faced (not a wide). Batter runs are `runs_bat` of the striker on that delivery. A wicket delivery stays on the pair it ends, then that pair closes. A later pair starts its own runs and balls at 0: the survivor's earlier runs do not carry over.
+
+The pairs partition the innings: the sum of `runs` equals the innings runs, and the sum of each batter's runs across pairs equals that batter's card. Strike rate and economy are not stored. A page may show strike rate as batter runs × 100 / balls faced, and economy as bowler runs × 6 / legal balls, and `-` when the denominator is 0.
 
 ## Errors
 
