@@ -2,6 +2,7 @@ import { deepStrictEqual, strictEqual } from "node:assert";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { formatEconomy, formatStrikeRate } from "./present";
 import { replayFixture, runInvalidFixture } from "./replay";
 import type { InvalidFixture, ReplayFixture } from "./replay";
 
@@ -15,6 +16,19 @@ const validNames = readdirSync(join(fixturesRoot, "valid"))
 const invalidNames = readdirSync(join(fixturesRoot, "invalid"))
   .filter((name) => name.endsWith(".json"))
   .sort();
+
+describe("scorecard rates", () => {
+  it("shows a dash when no ball has been faced", () => {
+    strictEqual(formatStrikeRate(4, 0), "-");
+    strictEqual(formatEconomy(1, 0), "-");
+  });
+
+  it("rounds strike rate and economy like the scoring rates", () => {
+    strictEqual(formatStrikeRate(10, 3), "333.33");
+    strictEqual(formatEconomy(10, 11), "5.45");
+    strictEqual(formatEconomy(6, 6), "6");
+  });
+});
 
 describe("shared scoring fixtures", () => {
   it("reads every fixture file", () => {

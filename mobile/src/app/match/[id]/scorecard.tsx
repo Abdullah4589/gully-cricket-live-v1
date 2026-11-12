@@ -4,7 +4,8 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Tap } from "../../../components/Tap";
-import type { InningsView, MatchDocument } from "../../../engine";
+import { formatEconomy, formatInningsRate, formatStrikeRate, formatToss, legalBalls } from "../../../engine";
+import type { InningsView, MatchDocument, Partnership } from "../../../engine";
 import { useMatchStore } from "../../../store/match-store";
 import { colors } from "../../../theme";
 
@@ -47,6 +48,9 @@ export default function ScorecardScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.page, { paddingBottom: insets.bottom + 24 }]}>
+      <Text style={styles.meta} testID="toss-line">
+        {formatToss(state)}
+      </Text>
       <View style={styles.tabs}>
         {state.innings.map((item) => (
           <Tap
@@ -64,33 +68,57 @@ export default function ScorecardScreen() {
 }
 
 function InningsCard({ doc, innings }: { doc: MatchDocument; innings: InningsView }) {
+  const rate = formatInningsRate(innings.runs, legalBalls(innings.overs));
   return (
     <View style={styles.block}>
       <Text style={styles.heading}>
         {teamName(doc, innings.batting_team_id)} {innings.runs}/{innings.wickets} ({innings.overs.display})
+        {rate ? `  CRR ${rate}` : ""}
       </Text>
       <Text style={styles.section} testID="scorecard-batting">
         Batting
       </Text>
+      <View style={styles.line}>
+        <View style={styles.who} />
+        <Text style={styles.colHead}>R</Text>
+        <Text style={styles.colHead}>B</Text>
+        <Text style={styles.colHead}>4s</Text>
+        <Text style={styles.colHead}>6s</Text>
+        <Text style={styles.colHead}>SR</Text>
+      </View>
       {innings.batting.map((row) => (
-        <View key={row.player_id} style={styles.line}>
+        <View key={row.player_id} style={styles.line} testID={`batter-${row.player_id}`}>
           <View style={styles.who}>
             <Text style={styles.name}>{row.name}</Text>
             <Text style={styles.meta}>{row.dismissal}</Text>
           </View>
-          <Text style={styles.figures}>
-            {row.runs} ({row.balls})
-          </Text>
+          <Text style={styles.col}>{row.runs}</Text>
+          <Text style={styles.col}>{row.balls}</Text>
+          <Text style={styles.col}>{row.fours}</Text>
+          <Text style={styles.col}>{row.sixes}</Text>
+          <Text style={styles.col}>{formatStrikeRate(row.runs, row.balls)}</Text>
         </View>
       ))}
       <Text style={styles.section}>Bowling</Text>
+      <View style={styles.line}>
+        <View style={styles.who} />
+        <Text style={styles.colHead}>O</Text>
+        <Text style={styles.colHead}>M</Text>
+        <Text style={styles.colHead}>R</Text>
+        <Text style={styles.colHead}>W</Text>
+        <Text style={styles.colHead}>Econ</Text>
+      </View>
       {innings.bowling.length === 0 ? <Text style={styles.meta}>No balls bowled.</Text> : null}
       {innings.bowling.map((row) => (
-        <View key={row.player_id} style={styles.line}>
-          <Text style={styles.name}>{row.name}</Text>
-          <Text style={styles.figures}>
-            {row.overs.display} · {row.maidens} · {row.runs} · {row.wickets}
-          </Text>
+        <View key={row.player_id} style={styles.line} testID={`bowler-${row.player_id}`}>
+          <View style={styles.who}>
+            <Text style={styles.name}>{row.name}</Text>
+          </View>
+          <Text style={styles.col}>{row.overs.display}</Text>
+          <Text style={styles.col}>{row.maidens}</Text>
+          <Text style={styles.col}>{row.runs}</Text>
+          <Text style={styles.col}>{row.wickets}</Text>
+          <Text style={styles.col}>{formatEconomy(row.runs, legalBalls(row.overs))}</Text>
         </View>
       ))}
       <Text style={styles.section}>Fall of wickets</Text>
@@ -98,6 +126,12 @@ function InningsCard({ doc, innings }: { doc: MatchDocument; innings: InningsVie
       {innings.fall_of_wickets.map((fall) => (
         <Text key={`${fall.wicket}-${fall.batter_id}`} style={styles.meta}>
           {fall.wicket}-{fall.runs} {playerName(doc, fall.batter_id)}
+        </Text>
+      ))}
+      <Text style={styles.section}>Partnerships</Text>
+      {innings.partnerships.map((pair) => (
+        <Text key={pair.wicket} style={styles.meta} testID={`partnership-${pair.wicket}`}>
+          {partnershipText(doc, pair)}
         </Text>
       ))}
       <Text style={styles.section}>Extras</Text>
@@ -113,6 +147,12 @@ function InningsCard({ doc, innings }: { doc: MatchDocument; innings: InningsVie
       ))}
     </View>
   );
+}
+
+function partnershipText(doc: MatchDocument, pair: Partnership): string {
+  const first = `${playerName(doc, pair.batter1_id)} ${pair.batter1_runs} (${pair.batter1_balls})`;
+  const second = pair.batter2_id === null ? "" : `, ${playerName(doc, pair.batter2_id)} ${pair.batter2_runs} (${pair.batter2_balls})`;
+  return `${pair.wicket}  ${first}${second}  ${pair.runs} (${pair.balls})`;
 }
 
 function teamName(doc: MatchDocument, id: string): string {
@@ -140,6 +180,7 @@ const styles = StyleSheet.create({
   who: { flex: 1 },
   name: { color: colors.cream, fontSize: 17, fontWeight: "700" },
   meta: { color: colors.muted, fontSize: 15 },
-  figures: { color: colors.cream, fontSize: 17, fontWeight: "700" },
+  col: { color: colors.cream, width: 44, textAlign: "right", fontSize: 15, fontWeight: "700" },
+  colHead: { color: colors.muted, width: 44, textAlign: "right", fontSize: 12, fontWeight: "700" },
   muted: { color: colors.muted, fontSize: 16 },
 });

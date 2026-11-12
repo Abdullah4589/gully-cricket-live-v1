@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScoringKeypad } from "../../../components/ScoringKeypad";
 import { Tap } from "../../../components/Tap";
-import { activeInnings, batterOptions, battingTeamId, bowlerOptions, formatResult, teamPlayers } from "../../../engine";
-import type { InningsStart, MatchDocument, Player } from "../../../engine";
+import { activeInnings, batterOptions, battingTeamId, bowlerOptions, formatEconomy, formatResult, formatStrikeRate, legalBalls, teamPlayers } from "../../../engine";
+import type { InningsStart, InningsView, MatchDocument, Player } from "../../../engine";
 import type { ScoreAction } from "../../../score";
 import { useMatchStore } from "../../../store/match-store";
 import { colors, hit } from "../../../theme";
@@ -93,16 +93,24 @@ function ScoreBoard() {
         </Text>
       ))}
       {state.status === "innings_2" ? (
-        <Text style={styles.rates}>
+        <Text style={styles.rates} testID="live-rates">
           Need {state.runs_needed ?? 0} · CRR {showRate(state.crr)} · RRR {showRate(state.rrr)}
         </Text>
       ) : null}
+      {state.status === "innings_1" && state.crr !== null ? (
+        <Text style={styles.rates} testID="live-rates">
+          CRR {showRate(state.crr)}
+        </Text>
+      ) : null}
       <Text style={styles.tokens}>{tokens.length === 0 ? "This over has not started." : tokens.join("  ")}</Text>
-      {number ? (
-        <View style={styles.crease}>
-          <Text style={styles.striker}>Striker  {playerName(doc, state.striker_id)}</Text>
-          <Text style={styles.player}>Non-striker  {state.non_striker_id ? playerName(doc, state.non_striker_id) : "batting alone"}</Text>
-          <Text style={styles.player}>Bowler  {playerName(doc, state.bowler_id)}</Text>
+      {number && live ? (
+        <View style={styles.crease} testID="crease">
+          <Text style={styles.striker}>Striker  {playerName(doc, state.striker_id)}  {batterFigures(live, state.striker_id)}</Text>
+          <Text style={styles.player}>
+            Non-striker  {state.non_striker_id ? `${playerName(doc, state.non_striker_id)}  ${batterFigures(live, state.non_striker_id)}` : "batting alone"}
+          </Text>
+          <Text style={styles.player}>Bowler  {bowlerFigures(doc, live, state.bowler_id)}</Text>
+          <Text style={styles.player}>Partnership  {partnershipFigures(live)}</Text>
         </View>
       ) : null}
     </View>
@@ -277,6 +285,31 @@ function teamName(doc: MatchDocument, id: string): string {
 
 function showRate(value: number | null): string {
   return value === null ? "—" : String(value);
+}
+
+function batterFigures(innings: InningsView, playerId: string | null): string {
+  const row = innings.batting.find((item) => item.player_id === playerId);
+  const runs = row?.runs ?? 0;
+  const balls = row?.balls ?? 0;
+  return `${runs} (${balls})  SR ${formatStrikeRate(runs, balls)}`;
+}
+
+function bowlerFigures(doc: MatchDocument, innings: InningsView, bowlerId: string | null): string {
+  const name = playerName(doc, bowlerId);
+  const row = innings.bowling.find((item) => item.player_id === bowlerId);
+  if (!row) {
+    return `${name}  0.0-0-0-0  Econ -`;
+  }
+  const figures = `${row.overs.display}-${row.maidens}-${row.runs}-${row.wickets}`;
+  return `${name}  ${figures}  Econ ${formatEconomy(row.runs, legalBalls(row.overs))}`;
+}
+
+function partnershipFigures(innings: InningsView): string {
+  const pair = innings.partnerships[innings.partnerships.length - 1];
+  if (!pair) {
+    return "0 (0)";
+  }
+  return `${pair.runs} (${pair.balls})`;
 }
 
 const styles = StyleSheet.create({
