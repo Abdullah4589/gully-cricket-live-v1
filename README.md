@@ -82,11 +82,13 @@ flowchart LR
 
 The phone is the scorer. SQLite holds the match and an ordered outbox. The API is the sync target and the public read side. Postgres stores the ball log. The follow page renders the score and then listens on `/ws/matches/{slug}` for a snapshot, each new ball, and undo.
 
+The follow page and the phone scorecard use the derived state. At the crease: striker and non-striker with runs, balls, and strike rate; the bowler with overs, maidens, runs, wickets, and economy; and the current partnership. Recent overs on the follow page show each ball and that over's total. The toss line is who won it and whether they chose to bat or bowl. Both scorecards show fours, sixes, strike rate, economy, and the partnerships for each innings. Strike rate is runs per 100 balls faced. Economy is runs per over. A dash means that count is zero. The current rate is filled in the first innings as well as the chase. A new ball and an undo recompute all of it from the ball log.
+
 ## Design decisions
 
 The ball log is append-only. Totals, cards, and the result are replayed from the non-voided rows. Nothing treats a stored total as the source of truth.
 
-There is one scoring engine. The phone and the API both implement `contracts/RULES.md` and the same fixtures. A wide, a no-ball, a wicket, and a chase are the same numbers on both sides.
+There is one scoring engine. The phone and the API both implement `contracts/RULES.md` and the same fixtures. A wide, a no-ball, a wicket, a partnership, and a chase are the same numbers on both sides.
 
 Undo voids the latest non-voided ball. It does not delete the row, and it does not free the `seq` or the `client_uuid`. The state is replayed.
 

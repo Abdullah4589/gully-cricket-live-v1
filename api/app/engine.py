@@ -148,6 +148,33 @@ class BowlerCard:
 
 
 @dataclass
+class Partnership:
+    wicket: int
+    batter1_id: str
+    batter2_id: str | None
+    batter1_runs: int = 0
+    batter1_balls: int = 0
+    batter2_runs: int = 0
+    batter2_balls: int = 0
+    runs: int = 0
+    balls: int = 0
+    open: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "wicket": self.wicket,
+            "batter1_id": self.batter1_id,
+            "batter1_runs": self.batter1_runs,
+            "batter1_balls": self.batter1_balls,
+            "batter2_id": self.batter2_id,
+            "batter2_runs": self.batter2_runs,
+            "batter2_balls": self.batter2_balls,
+            "runs": self.runs,
+            "balls": self.balls,
+        }
+
+
+@dataclass
 class InningsState:
     number: int
     batting_team_id: str
@@ -167,6 +194,7 @@ class InningsState:
     bowling: list[BowlerCard] | None = None
     fall_of_wickets: list[dict[str, Any]] | None = None
     timeline: list[list[str]] | None = None
+    partnerships: list[Partnership] | None = None
     over_just_completed: bool = False
     over_charged: int = 0
     over_legal: dict[str, int] | None = None
@@ -180,6 +208,8 @@ class InningsState:
             self.fall_of_wickets = []
         if self.timeline is None:
             self.timeline = []
+        if self.partnerships is None:
+            self.partnerships = []
         if self.over_legal is None:
             self.over_legal = {}
 
@@ -212,15 +242,20 @@ def resolve_rules(raw: Mapping[str, Any] | None) -> Rules:
     )
 
 
-def round_rate(numerator: int, denominator: int) -> int | float:
+def round_half_away(numerator: int, denominator: int) -> int | float:
     """Round half away from zero to 2 decimal places. Whole numbers stay ints."""
-    quantized = (Decimal(numerator) * Decimal(6) / Decimal(denominator)).quantize(
+    quantized = (Decimal(numerator) / Decimal(denominator)).quantize(
         Decimal("0.01"),
         rounding=ROUND_HALF_UP,
     )
     if quantized == quantized.to_integral_value():
         return int(quantized)
     return float(json.loads(format(quantized, "f")))
+
+
+def round_rate(numerator: int, denominator: int) -> int | float:
+    """Current or required rate: runs * 6 / balls."""
+    return round_half_away(numerator * 6, denominator)
 
 
 def overs_dict(legal: int) -> dict[str, Any]:
@@ -285,6 +320,54 @@ def _dismissal(kind: str, bowler: str, fielder: str | None) -> str:
     raise AssertionError(kind)
 
 
+def _same_pair(partnership: Partnership, striker_id: str, non_striker_id: str | None) -> bool:
+    crease = {striker_id}
+    if non_striker_id is not None:
+        crease.add(non_striker_id)
+    standing = {partnership.batter1_id}
+    if partnership.batter2_id is not None:
+        standing.add(partnership.batter2_id)
+    return crease == standing
+
+
+def _pair_order(
+    previous: Partnership | None,
+    striker_id: str,
+    non_striker_id: str | None,
+) -> tuple[str, str | None]:
+    if previous is None or non_striker_id is None:
+        return striker_id, non_striker_id
+    stayed = {previous.batter1_id}
+    if previous.batter2_id is not None:
+        stayed.add(previous.batter2_id)
+    if striker_id in stayed and non_striker_id not in stayed:
+        return striker_id, non_striker_id
+    if non_striker_id in stayed and striker_id not in stayed:
+        return non_striker_id, striker_id
+    return striker_id, non_striker_id
+
+
+def _credit_partnership(
+    partnership: Partnership,
+    striker_id: str,
+    batter_runs: int,
+    faced: bool,
+    team_runs: int,
+) -> None:
+    partnership.runs += team_runs
+    if faced:
+        partnership.balls += 1
+    if striker_id == partnership.batter1_id:
+        partnership.batter1_runs += batter_runs
+        if faced:
+            partnership.batter1_balls += 1
+        return
+    if partnership.batter2_id is not None and striker_id == partnership.batter2_id:
+        partnership.batter2_runs += batter_runs
+        if faced:
+            partnership.batter2_balls += 1
+
+
 def _accounts(rules: Rules, ball: Ball) -> tuple[int, int, int, int, bool, bool]:
     """Return team runs, batter runs, bowler runs, swap runs, legal, faced."""
     extra = ball.extra_type
@@ -316,6 +399,8 @@ class _Sim:
         self.needs_new_batter: str | None = None
         self.needs_new_bowler = False
         self.innings: list[InningsState] = []
+        self.toss_winner = engine.toss_winner
+        self.toss_decision = engine.toss_decision
 
     def innings_by_number(self, number: int) -> InningsState | None:
         for inn in self.innings:
@@ -343,6 +428,8 @@ class _Sim:
         )
         inn.batter(striker, self.names)
         inn.batter(non_striker, self.names)
+        assert inn.partnerships is not None
+        inn.partnerships.append(Partnership(wicket=1, batter1_id=striker, batter2_id=non_striker))
         self.innings.append(inn)
         self.status = "innings_1" if number == 1 else "innings_2"
         self.striker_id = striker
@@ -366,6 +453,8 @@ class _Sim:
             inn.batter(ball.non_striker_id, self.names)
 
         team_runs, batter_runs, bowler_runs, swap_runs, legal, faced = _accounts(self.rules, ball)
+        partnership = self._partnership_for(inn, ball.striker_id, ball.non_striker_id)
+        _credit_partnership(partnership, ball.striker_id, batter_runs, faced, team_runs)
         inn.runs += team_runs
         if ball.extra_type == "wide":
             inn.extras_wide += team_runs
@@ -405,6 +494,7 @@ class _Sim:
                 self.names[ball.fielder_id] if ball.fielder_id is not None else None,
             )
             inn.wickets += 1
+            partnership.open = False
             assert inn.fall_of_wickets is not None
             inn.fall_of_wickets.append(
                 {"wicket": inn.wickets, "runs": inn.runs, "batter_id": ball.dismissed_id}
@@ -512,6 +602,7 @@ class _Sim:
             "crr": crr,
             "rrr": rrr,
             "runs_needed": runs_needed,
+            "toss": {"winner_team_id": self.toss_winner, "decision": self.toss_decision},
         }
 
     def _innings_dict(self, inn: InningsState) -> dict[str, Any]:
@@ -519,6 +610,7 @@ class _Sim:
         assert inn.bowling is not None
         assert inn.fall_of_wickets is not None
         assert inn.timeline is not None
+        assert inn.partnerships is not None
         total = inn.extras_wide + inn.extras_no_ball + inn.extras_bye + inn.extras_leg_bye
         return {
             "innings_number": inn.number,
@@ -550,9 +642,15 @@ class _Sim:
             ],
             "fall_of_wickets": [dict(item) for item in inn.fall_of_wickets],
             "overs_timeline": [list(over) for over in inn.timeline],
+            "partnerships": [row.to_dict() for row in inn.partnerships],
         }
 
     def _rates(self) -> tuple[int | float | None, int | float | None, int | None]:
+        if self.status in ("innings_1", "innings_break"):
+            inn = self.innings_by_number(1)
+            if inn is None or inn.legal_balls == 0:
+                return None, None, None
+            return round_rate(inn.runs, inn.legal_balls), None, None
         if self.status != "innings_2":
             return None, None, None
         inn = self.innings_by_number(2)
@@ -563,6 +661,23 @@ class _Sim:
         crr = round_rate(inn.runs, inn.legal_balls) if inn.legal_balls else None
         rrr = round_rate(runs_needed, balls_left) if balls_left else None
         return crr, rrr, runs_needed
+
+    def _partnership_for(
+        self,
+        inn: InningsState,
+        striker_id: str,
+        non_striker_id: str | None,
+    ) -> Partnership:
+        assert inn.partnerships is not None
+        current = inn.partnerships[-1] if inn.partnerships else None
+        if current is not None and current.open and _same_pair(current, striker_id, non_striker_id):
+            return current
+        if current is not None and current.open:
+            current.open = False
+        batter1, batter2 = _pair_order(current, striker_id, non_striker_id)
+        opened = Partnership(wicket=inn.wickets + 1, batter1_id=batter1, batter2_id=batter2)
+        inn.partnerships.append(opened)
+        return opened
 
 
 class Engine:

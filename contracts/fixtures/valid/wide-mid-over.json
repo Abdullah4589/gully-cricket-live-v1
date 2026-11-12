@@ -153,6 +153,19 @@
           [
             "wd"
           ]
+        ],
+        "partnerships": [
+          {
+            "wicket": 1,
+            "batter1_id": "a1",
+            "batter1_runs": 0,
+            "batter1_balls": 0,
+            "batter2_id": "a2",
+            "batter2_runs": 0,
+            "batter2_balls": 0,
+            "runs": 2,
+            "balls": 0
+          }
         ]
       }
     ],
@@ -163,6 +176,10 @@
     "needs_new_bowler": false,
     "crr": null,
     "rrr": null,
-    "runs_needed": null
+    "runs_needed": null,
+    "toss": {
+      "winner_team_id": "A",
+      "decision": "bat"
+    }
   }
 }

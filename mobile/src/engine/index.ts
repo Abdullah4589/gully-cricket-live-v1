@@ -16,7 +16,17 @@ export {
   teamPlayers,
   undoLastBall,
 } from "./engine";
-export { formatResult, inningsHeadline, topBatter, topBowler } from "./present";
+export {
+  formatEconomy,
+  formatInningsRate,
+  formatResult,
+  formatStrikeRate,
+  formatToss,
+  inningsHeadline,
+  legalBalls,
+  topBatter,
+  topBowler,
+} from "./present";
 export type { HighlightBatter, HighlightBowler } from "./present";
 export { replayFixture, replayLog, runInvalidFixture } from "./replay";
 export type { InvalidFixture, LogEntry, ReplayFixture, ReplayOp } from "./replay";
@@ -28,6 +38,7 @@ export type {
   Extras,
   ExtraType,
   FallOfWicket,
+  Toss,
   InningsStart,
   InningsView,
   LegalBallInput,
@@ -35,6 +46,7 @@ export type {
   MatchState,
   NeedsNewBatter,
   OversShape,
+  Partnership,
   Player,
   Result,
   Rules,

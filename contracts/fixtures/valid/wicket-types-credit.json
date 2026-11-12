@@ -315,6 +315,63 @@
             "W",
             "W"
           ]
+        ],
+        "partnerships": [
+          {
+            "wicket": 1,
+            "batter1_id": "a1",
+            "batter1_runs": 0,
+            "batter1_balls": 1,
+            "batter2_id": "a2",
+            "batter2_runs": 0,
+            "batter2_balls": 0,
+            "runs": 0,
+            "balls": 1
+          },
+          {
+            "wicket": 2,
+            "batter1_id": "a2",
+            "batter1_runs": 0,
+            "batter1_balls": 0,
+            "batter2_id": "a3",
+            "batter2_runs": 0,
+            "batter2_balls": 1,
+            "runs": 0,
+            "balls": 1
+          },
+          {
+            "wicket": 3,
+            "batter1_id": "a2",
+            "batter1_runs": 0,
+            "batter1_balls": 0,
+            "batter2_id": "a4",
+            "batter2_runs": 0,
+            "batter2_balls": 1,
+            "runs": 0,
+            "balls": 1
+          },
+          {
+            "wicket": 4,
+            "batter1_id": "a2",
+            "batter1_runs": 0,
+            "batter1_balls": 0,
+            "batter2_id": "a5",
+            "batter2_runs": 0,
+            "batter2_balls": 1,
+            "runs": 0,
+            "balls": 1
+          },
+          {
+            "wicket": 5,
+            "batter1_id": "a2",
+            "batter1_runs": 0,
+            "batter1_balls": 0,
+            "batter2_id": "a6",
+            "batter2_runs": 0,
+            "batter2_balls": 1,
+            "runs": 0,
+            "balls": 1
+          }
         ]
       }
     ],
@@ -323,8 +380,12 @@
     "bowler_id": "b1",
     "needs_new_batter": "striker",
     "needs_new_bowler": false,
-    "crr": null,
+    "crr": 0,
     "rrr": null,
-    "runs_needed": null
+    "runs_needed": null,
+    "toss": {
+      "winner_team_id": "A",
+      "decision": "bat"
+    }
   }
 }

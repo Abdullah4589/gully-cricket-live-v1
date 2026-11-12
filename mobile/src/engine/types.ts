@@ -127,6 +127,23 @@ export interface FallOfWicket {
   batter_id: string;
 }
 
+export interface Partnership {
+  wicket: number;
+  batter1_id: string;
+  batter1_runs: number;
+  batter1_balls: number;
+  batter2_id: string | null;
+  batter2_runs: number;
+  batter2_balls: number;
+  runs: number;
+  balls: number;
+}
+
+export interface Toss {
+  winner_team_id: string;
+  decision: TossDecision;
+}
+
 export interface InningsView {
   innings_number: 1 | 2;
   batting_team_id: string;
@@ -141,6 +158,7 @@ export interface InningsView {
   bowling: BowlingRow[];
   fall_of_wickets: FallOfWicket[];
   overs_timeline: string[][];
+  partnerships: Partnership[];
 }
 
 export interface WinResult {
@@ -170,6 +188,7 @@ export interface MatchState {
   crr: number | null;
   rrr: number | null;
   runs_needed: number | null;
+  toss: Toss;
 }
 
 /** The ball the scorer is allowed to append. Seq and hints are filled by the engine. */

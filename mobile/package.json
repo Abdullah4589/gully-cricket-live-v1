@@ -68,7 +68,8 @@
         "displayName": "ui",
         "preset": "jest-expo",
         "testMatch": [
-          "<rootDir>/src/components/**/*.test.tsx"
+          "<rootDir>/src/components/**/*.test.tsx",
+          "<rootDir>/src/app/**/*.test.tsx"
         ]
       }
     ]

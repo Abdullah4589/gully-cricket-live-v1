@@ -13,6 +13,7 @@ import type {
   MatchState,
   NeedsNewBatter,
   OversShape,
+  Partnership,
   Player,
   Result,
   Rules,
@@ -58,6 +59,10 @@ interface OverBowler {
   charged: number;
 }
 
+interface PartnershipLive extends Partnership {
+  open: boolean;
+}
+
 interface LiveInnings {
   inningsNumber: 1 | 2;
   battingTeamId: string;
@@ -72,6 +77,7 @@ interface LiveInnings {
   bowling: BowlingLive[];
   fallOfWickets: InningsView["fall_of_wickets"];
   timeline: string[][];
+  partnerships: PartnershipLive[];
   overOpen: boolean;
   overTrack: Map<string, OverBowler>;
 }
@@ -407,6 +413,7 @@ export function deriveState(doc: MatchDocument): MatchState {
     crr: rates.crr,
     rrr: rates.rrr,
     runs_needed: rates.runs_needed,
+    toss: { winner_team_id: doc.tossWinnerTeamId, decision: doc.tossDecision },
   };
 }
 
@@ -583,11 +590,13 @@ function beginInnings(doc: MatchDocument, start: InningsStart, previous: Innings
     bowling: [],
     fallOfWickets: [],
     timeline: [],
+    partnerships: [],
     overOpen: false,
     overTrack: new Map(),
   };
   ensureBatter(doc, live, start.striker_id);
   ensureBatter(doc, live, start.non_striker_id);
+  live.partnerships.push(newPartnership(1, start.striker_id, start.non_striker_id));
   return live;
 }
 
@@ -597,6 +606,8 @@ function applyDelivery(
   event: BallEvent,
 ): { strikerId: string; nonStrikerId: string | null; needsNewBatter: NeedsNewBatter; needsNewBowler: boolean; ended: boolean; result: Result } {
   const charge = deliveryCharge(event, doc.rules);
+  const partnership = partnershipFor(live, event.striker_id, event.non_striker_id);
+  creditPartnership(partnership, event.striker_id, charge.batter, charge.faced, charge.team);
   if (!live.overOpen) {
     live.overTrack = new Map();
     live.timeline.push([]);
@@ -653,6 +664,7 @@ function applyDelivery(
     dismissed.dismissal = dismissalText(doc, event);
     live.wickets += 1;
     live.fallOfWickets.push({ wicket: live.wickets, runs: live.runs, batter_id: event.dismissed_id });
+    partnership.open = false;
     if (BOWLER_CREDIT.has(event.wicket_type)) {
       bowler.wickets += 1;
     }
@@ -894,6 +906,7 @@ function freezeInnings(live: LiveInnings): InningsView {
     bowling: live.bowling.map((row) => bowlingRow(row)),
     fall_of_wickets: live.fallOfWickets.map((row) => ({ ...row })),
     overs_timeline: live.timeline.map((over) => [...over]),
+    partnerships: live.partnerships.map((row) => partnershipView(row)),
   };
 }
 
@@ -919,6 +932,15 @@ function ratesFor(
   status: Status,
   innings: InningsView[],
 ): { crr: number | null; rrr: number | null; runs_needed: number | null } {
+  if (status === "innings_1" || status === "innings_break") {
+    const first = innings.find((item) => item.innings_number === 1);
+    const legal = first ? first.overs.overs * 6 + first.overs.balls : 0;
+    return {
+      crr: first && legal > 0 ? roundHalfAwayFromZero(first.runs * 6, legal) : null,
+      rrr: null,
+      runs_needed: null,
+    };
+  }
   if (status !== "innings_2") {
     return { crr: null, rrr: null, runs_needed: null };
   }
@@ -933,6 +955,115 @@ function ratesFor(
     crr: legal === 0 ? null : roundHalfAwayFromZero(chase.runs * 6, legal),
     rrr: ballsLeft === 0 ? null : roundHalfAwayFromZero(runsNeeded * 6, ballsLeft),
     runs_needed: runsNeeded,
+  };
+}
+
+function newPartnership(wicket: number, batter1Id: string, batter2Id: string | null): PartnershipLive {
+  return {
+    wicket,
+    batter1_id: batter1Id,
+    batter1_runs: 0,
+    batter1_balls: 0,
+    batter2_id: batter2Id,
+    batter2_runs: 0,
+    batter2_balls: 0,
+    runs: 0,
+    balls: 0,
+    open: true,
+  };
+}
+
+function partnershipFor(live: LiveInnings, strikerId: string, nonStrikerId: string | null): PartnershipLive {
+  const current = live.partnerships[live.partnerships.length - 1];
+  if (current?.open && samePair(current, strikerId, nonStrikerId)) {
+    return current;
+  }
+  if (current?.open) {
+    current.open = false;
+  }
+  const next = newPartnership(live.wickets + 1, ...pairOrder(current, strikerId, nonStrikerId));
+  live.partnerships.push(next);
+  return next;
+}
+
+function samePair(partnership: PartnershipLive, strikerId: string, nonStrikerId: string | null): boolean {
+  const crease = new Set<string>([strikerId]);
+  if (nonStrikerId !== null) {
+    crease.add(nonStrikerId);
+  }
+  const standing = new Set<string>([partnership.batter1_id]);
+  if (partnership.batter2_id !== null) {
+    standing.add(partnership.batter2_id);
+  }
+  if (crease.size !== standing.size) {
+    return false;
+  }
+  for (const id of crease) {
+    if (!standing.has(id)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function pairOrder(
+  previous: PartnershipLive | undefined,
+  strikerId: string,
+  nonStrikerId: string | null,
+): [string, string | null] {
+  if (!previous || nonStrikerId === null) {
+    return [strikerId, nonStrikerId];
+  }
+  const stayed = new Set<string>([previous.batter1_id]);
+  if (previous.batter2_id !== null) {
+    stayed.add(previous.batter2_id);
+  }
+  if (stayed.has(strikerId) && !stayed.has(nonStrikerId)) {
+    return [strikerId, nonStrikerId];
+  }
+  if (stayed.has(nonStrikerId) && !stayed.has(strikerId)) {
+    return [nonStrikerId, strikerId];
+  }
+  return [strikerId, nonStrikerId];
+}
+
+function creditPartnership(
+  partnership: PartnershipLive,
+  strikerId: string,
+  batterRuns: number,
+  faced: boolean,
+  teamRuns: number,
+): void {
+  partnership.runs += teamRuns;
+  if (faced) {
+    partnership.balls += 1;
+  }
+  if (strikerId === partnership.batter1_id) {
+    partnership.batter1_runs += batterRuns;
+    if (faced) {
+      partnership.batter1_balls += 1;
+    }
+    return;
+  }
+  if (partnership.batter2_id !== null && strikerId === partnership.batter2_id) {
+    partnership.batter2_runs += batterRuns;
+    if (faced) {
+      partnership.batter2_balls += 1;
+    }
+  }
+}
+
+function partnershipView(row: PartnershipLive): Partnership {
+  return {
+    wicket: row.wicket,
+    batter1_id: row.batter1_id,
+    batter1_runs: row.batter1_runs,
+    batter1_balls: row.batter1_balls,
+    batter2_id: row.batter2_id,
+    batter2_runs: row.batter2_runs,
+    batter2_balls: row.batter2_balls,
+    runs: row.runs,
+    balls: row.balls,
   };
 }
 

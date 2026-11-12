@@ -1,4 +1,5 @@
-import type { MatchState } from "./types";
+import { roundHalfAwayFromZero } from "./rates";
+import type { MatchState, OversShape } from "./types";
 
 export interface HighlightBatter {
   name: string;
@@ -59,6 +60,37 @@ export function topBowler(state: MatchState): HighlightBowler | null {
   }
   rows.sort((left, right) => right.wickets - left.wickets || left.runs - right.runs);
   return rows[0];
+}
+
+export function legalBalls(overs: OversShape): number {
+  return overs.overs * 6 + overs.balls;
+}
+
+export function formatStrikeRate(runs: number, balls: number): string {
+  if (balls === 0) {
+    return "-";
+  }
+  return String(roundHalfAwayFromZero(runs * 100, balls));
+}
+
+export function formatEconomy(runs: number, balls: number): string {
+  if (balls === 0) {
+    return "-";
+  }
+  return String(roundHalfAwayFromZero(runs * 6, balls));
+}
+
+export function formatInningsRate(runs: number, balls: number): string | null {
+  if (balls === 0) {
+    return null;
+  }
+  return String(roundHalfAwayFromZero(runs * 6, balls));
+}
+
+export function formatToss(state: MatchState): string {
+  const winner = state.teams.find((team) => team.id === state.toss.winner_team_id);
+  const name = winner?.name ?? state.toss.winner_team_id;
+  return `${name} won the toss and chose to ${state.toss.decision}`;
 }
 
 export function inningsHeadline(state: MatchState, inningsNumber: 1 | 2): string | null {

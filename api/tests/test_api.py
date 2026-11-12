@@ -151,6 +151,9 @@ def test_scoring_flow(client: TestClient) -> None:
     open_card = client.get(f"/matches/{match_id}/scorecard")
     assert open_card.status_code == 200
     assert open_card.json()["teams"][0]["name"] == "North End"
+    public_card = client.get(f"/m/{slug}/scorecard")
+    assert public_card.status_code == 200
+    assert public_card.json()["toss"] == {"winner_team_id": "N", "decision": "bat"}
     bad_card = client.get(
         f"/matches/{match_id}/scorecard",
         headers={"Authorization": "Bearer not-the-scorer-token"},
